@@ -1,0 +1,2979 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora SBP · IFRS 2 / CPC 10 · Asaas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET + VARIABLES
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #002CBE;
+  --primary-light: #E6EAFB;
+  --primary-lighter: #F2F4FE;
+  --primary-dark: #001A6E;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E4E7EC;
+  --border-strong: #D0D5DD;
+  --text-primary: #101828;
+  --text-secondary: #475467;
+  --text-tertiary: #98A2B3;
+  --debit: #B42318;
+  --debit-bg: #FEF3F2;
+  --credit: #027A48;
+  --credit-bg: #ECFDF3;
+  --warning: #B45309;
+  --warning-bg: #FFFAEB;
+  --danger: #C0392B;
+  --danger-bg: #FEF3F2;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 8px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 12px 24px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.06);
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.app { max-width: 1280px; margin: 0 auto; padding: 28px 24px 96px; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: start; gap: 24px; flex-wrap: wrap; }
+.header-titles h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.header-titles .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.header-titles .badge {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.header-status {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--surface);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--credit); }
+.status-dot.saving { background: var(--warning); }
+.status-dot.error { background: var(--danger); }
+
+/* ============================================================
+   BARRA DE PLANOS
+   ============================================================ */
+.plans-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.plans-bar-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 240px; }
+.plans-bar-label { font-size: 11.5px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.plan-selector {
+  flex: 1;
+  max-width: 460px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+}
+.plans-bar-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.consolidated-banner {
+  padding: 10px 14px;
+  background: rgba(0,44,190,0.06);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.tab-disabled-overlay {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Quando uma aba está em modo consolidado, esconde todos os cards filhos
+   diretos exceto o placeholder de aviso */
+.consolidated-locked > *:not(.consolidated-placeholder) { display: none !important; }
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-xs);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tabs button {
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tabs button:hover:not(.active) { background: var(--primary-lighter); color: var(--text-primary); }
+.tabs button.active { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+.tabs button .err-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--danger);
+  display: none;
+}
+.tabs button.has-errors .err-dot { display: inline-block; }
+
+/* ============================================================
+   PANELS / SECTIONS
+   ============================================================ */
+section[data-tab-content] { display: none; }
+section[data-tab-content].active { display: block; animation: fadeIn 0.2s; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-xs);
+}
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 14px;
+}
+.panel-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel-heading {
+  font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;
+}
+.panel-sub {
+  font-size: 13px; color: var(--text-secondary); margin-bottom: 18px;
+}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.form-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.form-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-label.required::after { content: '*'; color: var(--danger); margin-left: 2px; }
+
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="date"],
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 44, 190, 0.12);
+}
+.field input.invalid, .field select.invalid {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.field-error {
+  font-size: 11.5px;
+  color: var(--danger);
+  margin-top: 2px;
+  display: none;
+}
+.field.has-error .field-error { display: block; }
+
+.field textarea { resize: vertical; min-height: 64px; font-family: var(--font-sans); }
+
+/* Tooltip */
+.tt {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  user-select: none;
+}
+.tt:hover .tt-content,
+.tt:focus .tt-content,
+.tt-content.visible { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.tt-content {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--text-primary);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  width: 240px;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, transform 0.15s, visibility 0s 0.15s;
+  pointer-events: none;
+  text-align: left;
+}
+.tt-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--text-primary);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-track {
+  width: 36px; height: 20px;
+  background: var(--border-strong);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.2s;
+}
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: var(--shadow-xs);
+}
+.toggle input:checked + .toggle-track { background: var(--primary); }
+.toggle input:checked + .toggle-track::before { transform: translateX(16px); }
+.toggle-label { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+
+/* Segmented */
+.segmented {
+  display: inline-flex;
+  background: var(--primary-lighter);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 2px;
+}
+.segmented button {
+  background: transparent;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.segmented button:hover:not(.active) { color: var(--text-primary); }
+.segmented button.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.btn:hover { background: var(--bg); box-shadow: var(--shadow-sm); }
+.btn.btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+.btn.btn-primary:hover { background: var(--primary-dark); }
+.btn.btn-ghost { background: transparent; border-color: transparent; color: var(--text-secondary); }
+.btn.btn-ghost:hover { background: var(--primary-lighter); color: var(--primary); }
+.btn.btn-danger { color: var(--danger); }
+.btn.btn-danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+.btn.btn-sm { padding: 6px 12px; font-size: 12.5px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================
+   TRANCHES
+   ============================================================ */
+.tranches { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.tranche-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr 32px;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.tranche-row.invalid { background: var(--danger-bg); border-color: var(--danger); }
+.tranche-index {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.tranche-remove {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  width: 32px; height: 32px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+}
+.tranche-remove:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
+.tranches-summary {
+  margin-top: 10px; padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--primary-lighter);
+  font-size: 12.5px;
+  color: var(--primary-dark);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tranches-summary.invalid { background: var(--danger-bg); color: var(--danger); }
+
+/* ============================================================
+   CHIPS (KPI)
+   ============================================================ */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.chip {
+  background: var(--primary-lighter);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border: 1px solid var(--primary-light);
+}
+.chip-label {
+  font-size: 10.5px;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.chip-value {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+.chip-value.small { font-size: 14px; }
+
+/* ============================================================
+   ENTRIES
+   ============================================================ */
+.entries {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) { .entries { grid-template-columns: 1fr; } }
+
+.entry-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-xs);
+  position: relative;
+}
+.entry-card.empregadora::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--credit); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.entry-card.outorgante::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--primary); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.card-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.card-title { font-size: 18px; font-weight: 600; margin-bottom: 2px; letter-spacing: -0.01em; }
+.card-entity { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+.card-tax-id { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: 18px; }
+
+.je { padding: 12px 0; border-top: 1px dashed var(--border); }
+.je:first-of-type { border-top: none; padding-top: 0; }
+.je-label {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.je-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  padding: 6px 0;
+  align-items: center;
+  font-size: 13.5px;
+}
+.je-dc {
+  font-weight: 700; text-align: center; font-size: 11px;
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.je-dc.d { background: var(--debit-bg); color: var(--debit); }
+.je-dc.c { background: var(--credit-bg); color: var(--credit); }
+.je-account { line-height: 1.4; }
+.je-account-name { display: block; color: var(--text-primary); }
+.je-account-group { display: block; font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+.je-value {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono); font-size: 12.5px;
+  color: var(--text-primary); letter-spacing: -0.02em;
+}
+
+.net-effect {
+  background: var(--primary-lighter);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 11px 14px; margin-top: 14px;
+  font-size: 12.5px; color: var(--primary-dark); line-height: 1.5;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+table.data th, table.data td { padding: 10px 12px; text-align: right; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data thead th {
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--primary-dark);
+}
+table.data tbody tr { border-bottom: 1px solid var(--border); }
+table.data tbody tr:last-child { border-bottom: none; }
+table.data tbody tr:nth-child(odd) { background: var(--bg); }
+table.data tbody td { font-family: var(--font-mono); }
+table.data tbody td:first-child { font-family: var(--font-sans); font-weight: 500; }
+table.data tfoot td {
+  background: var(--primary-lighter);
+  font-weight: 600; color: var(--primary-dark);
+  border-top: 2px solid var(--primary);
+}
+
+/* ============================================================
+   CHART (CSS bars)
+   ============================================================ */
+.chart-wrap { padding: 16px 0 8px; }
+.chart {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 200px; padding: 30px 0 30px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.chart-bar {
+  flex: 1; background: var(--primary);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 4px;
+  cursor: default;
+}
+.chart-bar.cash { background: var(--warning); }
+.chart-bar.future { background: var(--border-strong); }
+.chart-bar:hover { filter: brightness(1.1); }
+.chart-bar-value {
+  position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-family: var(--font-mono);
+  color: var(--text-secondary); white-space: nowrap;
+  font-variant-numeric: tabular-nums; font-weight: 500;
+}
+.chart-bar-label {
+  position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 10.5px; color: var(--text-tertiary); white-space: nowrap;
+}
+.chart-legend {
+  display: flex; gap: 16px; justify-content: center;
+  margin-top: 14px; font-size: 12px; color: var(--text-secondary);
+}
+.chart-legend-item { display: flex; align-items: center; gap: 6px; }
+.chart-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ============================================================
+   ACCORDION
+   ============================================================ */
+.accordion { border: 1px solid var(--border); border-radius: var(--radius-md); }
+.acc-item { border-bottom: 1px solid var(--border); }
+.acc-item:last-child { border-bottom: none; }
+.acc-trigger {
+  width: 100%; padding: 14px 16px;
+  background: transparent; border: none; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text-primary); text-align: left;
+}
+.acc-trigger:hover { background: var(--bg); }
+.acc-trigger .acc-arrow { transition: transform 0.2s; color: var(--text-tertiary); }
+.acc-item.open .acc-arrow { transform: rotate(90deg); }
+.acc-content { padding: 0 16px 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; display: none; }
+.acc-content code {
+  font-family: var(--font-mono); background: var(--primary-lighter);
+  color: var(--primary-dark); padding: 1px 5px; border-radius: 4px; font-size: 12px;
+}
+.acc-item.open .acc-content { display: block; }
+
+/* ============================================================
+   ACTION BAR
+   ============================================================ */
+.action-bar {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+  display: flex; gap: 6px; align-items: center;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+}
+
+/* ============================================================
+   ALERT
+   ============================================================ */
+.alert {
+  padding: 12px 16px; border-radius: var(--radius-md);
+  font-size: 13px; line-height: 1.5; margin-bottom: 14px;
+  border-left: 3px solid;
+}
+.alert.warning { background: var(--warning-bg); border-left-color: var(--warning); color: var(--text-secondary); }
+.alert.warning strong { color: var(--warning); }
+.alert.danger { background: var(--danger-bg); border-left-color: var(--danger); color: var(--text-secondary); }
+.alert.danger strong { color: var(--danger); }
+.alert.info { background: var(--primary-lighter); border-left-color: var(--primary); color: var(--text-secondary); }
+.alert.info strong { color: var(--primary); }
+.alert ul { margin: 6px 0 0 20px; }
+.alert ul li { margin-bottom: 3px; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(16, 24, 40, 0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.15s;
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 420px; width: calc(100vw - 40px);
+  box-shadow: var(--shadow-lg);
+}
+.modal h3 { font-size: 17px; margin-bottom: 8px; }
+.modal p { font-size: 13.5px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5; }
+.modal-actions { display: flex; gap: 8px; justify-content: end; }
+
+/* ============================================================
+   INTERCOMPANY BANNER
+   ============================================================ */
+.ic-banner {
+  background: linear-gradient(135deg, var(--primary-lighter), var(--primary-light));
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px;
+  color: var(--primary-dark);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--primary);
+}
+.ic-banner-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%; background: var(--primary);
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.ic-banner strong { color: var(--primary); font-weight: 600; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 720px) {
+  .app { padding: 16px 12px 96px; }
+  .form-grid, .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: start; gap: 8px; }
+  .header-titles h1 { font-size: 19px; }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  body { background: white; }
+  .app { max-width: 100%; padding: 0; }
+  .tabs, .action-bar, .header-status, .btn, .tranche-remove { display: none !important; }
+  section[data-tab-content] { display: block !important; page-break-after: always; }
+  section[data-tab-content="referencias"] { page-break-after: avoid; }
+  .panel { box-shadow: none; break-inside: avoid; }
+  .entries { grid-template-columns: 1fr 1fr !important; break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  table.data { font-size: 10.5px; }
+  table.data thead th { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .chart, .chart-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+.hide { display: none !important; }
+.muted { color: var(--text-tertiary); }
+.text-right { text-align: right; }
+.font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="header">
+    <div class="header-titles">
+      <h1>Calculadora SBP<span class="badge">IFRS 2 · CPC 10 (R1)</span></h1>
+      <div class="subtitle">Pagamentos baseados em ações intragrupo · cronograma, lançamentos e relatório</div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Pronto</span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       BARRA DE PLANOS · seletor multi-plano
+       ============================================================ -->
+  <div class="plans-bar" id="plans-bar">
+    <div class="plans-bar-left">
+      <label for="plan-selector" class="plans-bar-label">Plano ativo</label>
+      <select id="plan-selector" class="plan-selector"></select>
+    </div>
+    <div class="plans-bar-actions">
+      <button class="btn btn-sm" id="plan-new" title="Criar plano em branco">+ Novo</button>
+      <button class="btn btn-sm" id="plan-duplicate" title="Duplicar plano ativo">Duplicar</button>
+      <button class="btn btn-sm" id="plan-rename" title="Renomear plano ativo">Renomear</button>
+      <button class="btn btn-sm" id="plan-load-example" title="Carregar exemplo SOP 2021 (laudo TATICCA)">Exemplo SOP 2021</button>
+      <button class="btn btn-sm btn-danger" id="plan-delete" title="Excluir plano ativo">Excluir</button>
+    </div>
+  </div>
+
+  <!-- Aviso quando visão consolidada está ativa -->
+  <div class="consolidated-banner hide" id="consolidated-banner">
+    <strong>Visão consolidada:</strong> agregando <span id="consolidated-count">0</span> plano(s). Edição desabilitada — selecione um plano específico no seletor acima para editar campos.
+  </div>
+
+  <!-- ============================================================
+       TABS
+       ============================================================ -->
+  <nav class="tabs">
+    <button data-tab="plano" class="active">1. Plano <span class="err-dot"></span></button>
+    <button data-tab="outorga">2. Outorga &amp; vesting <span class="err-dot"></span></button>
+    <button data-tab="recharge">3. Recharge <span class="err-dot"></span></button>
+    <button data-tab="resultado">4. Resultado</button>
+    <button data-tab="referencias">Referências</button>
+  </nav>
+
+  <main>
+
+    <!-- ============================================================
+         ABA 1 · PLANO
+         ============================================================ -->
+    <section data-tab-content="plano" class="active">
+      <div class="panel">
+        <div class="panel-title">Identificação do plano</div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label required" for="planName">Nome do plano <span class="tt" tabindex="0">?<span class="tt-content">Identificação interna do programa de SBP (ex.: "Plano SOP 2024", "Programa Acionário Asaas 2025").</span></span></label>
+            <input type="text" id="planName" data-bind="identification.planName" placeholder="ex.: Plano SOP 2025">
+            <div class="field-error"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="reportingDate">Data-base do relatório <span class="tt" tabindex="0">?<span class="tt-content">Data de corte para apuração do acumulado e do saldo a apropriar. Geralmente fim de mês/trimestre/ano.</span></span></label>
+            <input type="date" id="reportingDate" data-bind="reportingDate">
+          </div>
+          <div class="field">
+            <label class="field-label" for="periodGranularity">Granularidade dos períodos</label>
+            <select id="periodGranularity" data-bind="periodGranularity">
+              <option value="monthly">Mensal</option>
+              <option value="quarterly">Trimestral</option>
+              <option value="annual" selected>Anual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <div class="panel-title" style="margin-bottom: 0;">Estrutura intragrupo</div>
+        </div>
+
+        <div id="ic-banner-wrap"></div>
+
+        <div class="form-grid cols-2">
+          <div>
+            <div class="card-tag" style="margin-bottom: 8px;">Outorgante · quem emite os instrumentos</div>
+            <div class="form-grid cols-3" style="margin-bottom: 12px;">
+              <div class="field" style="grid-column: span 2;">
+                <label class="field-label required" for="grantorName">Nome da entidade</label>
+                <input type="text" id="grantorName" data-bind="identification.grantor.name" placeholder="ex.: Asaas LTD">
+                <div class="field-error"></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="grantorTaxId">CNPJ / Tax ID</label>
+                <input type="text" id="grantorTaxId" data-bind="identification.grantor.taxId" placeholder="00.000.000/0000-00">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card-tag" style="margin-bottom: 8px;">Empregadora · onde o serviço é prestado</div>
+            <div class="form-grid cols-3" style="margin-bottom: 12px;">
+              <div class="field" style="grid-column: span 2;">
+                <label class="field-label required" for="employerName">Nome da entidade</label>
+                <input type="text" id="employerName" data-bind="identification.employer.name" placeholder="ex.: Asaas IP">
+                <div class="field-error"></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="employerTaxId">CNPJ / Tax ID</label>
+                <input type="text" id="employerTaxId" data-bind="identification.employer.taxId" placeholder="00.000.000/0000-00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid cols-3">
+          <div class="field">
+            <label class="field-label" for="employerCurrency">Moeda funcional da empregadora <span class="tt" tabindex="0">?<span class="tt-content">Moeda em que a entidade prepara as DFs. Define a conversão do FV de outorga.</span></span></label>
+            <select id="employerCurrency" data-bind="identification.employer.functionalCurrency">
+              <option value="BRL">BRL — Real</option>
+              <option value="USD">USD — Dólar</option>
+              <option value="EUR">EUR — Euro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ABA 2 · OUTORGA & VESTING
+         ============================================================ -->
+    <section data-tab-content="outorga">
+      <div class="panel">
+        <div class="panel-title">Dados da outorga</div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label required" for="grantDate">Data da outorga <span class="tt" tabindex="0">?<span class="tt-content">Grant date — âncora do cronograma de vesting e da mensuração do FV. Para equity-settled, o FV é congelado nesta data.</span></span></label>
+            <input type="date" id="grantDate" data-bind="grant.grantDate">
+            <div class="field-error"></div>
+          </div>
+          <div class="field">
+            <label class="field-label required" for="instrumentCount">Qtd. de instrumentos outorgados <span class="tt" tabindex="0">?<span class="tt-content">Total de opções, ações restritas ou SARs concedidos na outorga (número inteiro).</span></span></label>
+            <input type="number" id="instrumentCount" data-bind="grant.instrumentCount" step="1" min="0">
+            <div class="field-error"></div>
+          </div>
+          <div class="field">
+            <label class="field-label required" for="fvPerUnit">Fair value unitário <span class="tt" tabindex="0">?<span class="tt-content">FV de uma opção/instrumento na data de outorga, na moeda da outorga. Calculado pelo atuário (Black-Scholes / Binomial / Monte Carlo). Quando o laudo declara um FV arredondado (ex.: US$ 0,84), mas internamente usa valores ligeiramente distintos por tranche, informe aqui a média efetiva ponderada para reproduzir o total. No laudo SOP 2021 a média é US$ 0,8405 (= 765.093,02 / 910.270,08).</span></span></label>
+            <input type="number" id="fvPerUnit" data-bind="grant.fvPerUnit" step="0.0001" min="0">
+            <div class="field-error"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="grantCurrency">Moeda da outorga</label>
+            <select id="grantCurrency" data-bind="grant.grantCurrency">
+              <option value="USD">USD</option>
+              <option value="BRL">BRL</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="fxRate">Taxa de câmbio na outorga <span class="tt" tabindex="0">?<span class="tt-content">PTAX (ou equivalente) na data de outorga. Para equity-settled, congelada para todo o vesting (item não monetário).</span></span></label>
+            <input type="number" id="fxRate" data-bind="grant.fxRate" step="0.0001" min="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="participation">Participação no grupo (%) <span class="tt" tabindex="0">?<span class="tt-content">% de participação da outorgante na empregadora (cascata). Afeta o MEP. 100% = controle integral.</span></span></label>
+            <input type="number" id="participation" data-bind="grant.participation" step="1" min="0" max="100">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <div class="panel-title" style="margin-bottom: 0;">Modelo de precificação · dossiê</div>
+          <button class="btn btn-ghost btn-sm acc-trigger-inline" onclick="document.getElementById('pricing-details').classList.toggle('hide'); this.textContent = document.getElementById('pricing-details').classList.contains('hide') ? 'Mostrar detalhes' : 'Ocultar detalhes';">Mostrar detalhes</button>
+        </div>
+        <div id="pricing-details" class="hide">
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label class="field-label" for="pricingModel">Modelo</label>
+              <select id="pricingModel" data-bind="grant.pricingInputs.model">
+                <option value="black-scholes">Black-Scholes</option>
+                <option value="binomial">Binomial</option>
+                <option value="monte-carlo">Monte Carlo</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label" for="sharePrice">Preço da ação (outorga)</label><input type="number" id="sharePrice" data-bind="grant.pricingInputs.sharePrice" step="0.01"></div>
+            <div class="field"><label class="field-label" for="strikePrice">Preço de exercício</label><input type="number" id="strikePrice" data-bind="grant.pricingInputs.strikePrice" step="0.01"></div>
+            <div class="field"><label class="field-label" for="volatility">Volatilidade esperada (%)</label><input type="number" id="volatility" data-bind="grant.pricingInputs.volatilityPct" step="0.1"></div>
+            <div class="field"><label class="field-label" for="dividendYield">Dividend yield (%)</label><input type="number" id="dividendYield" data-bind="grant.pricingInputs.dividendYieldPct" step="0.01"></div>
+            <div class="field"><label class="field-label" for="riskFreeRate">Taxa livre de risco (%)</label><input type="number" id="riskFreeRate" data-bind="grant.pricingInputs.riskFreeRatePct" step="0.01"></div>
+            <div class="field"><label class="field-label" for="expectedTerm">Prazo esperado (anos)</label><input type="number" id="expectedTerm" data-bind="grant.pricingInputs.expectedTermYears" step="0.1"></div>
+            <div class="field"><label class="field-label" for="sharesOutstanding">Ações em circulação na outorga <span class="tt" tabindex="0">?<span class="tt-content">Quantidade total de ações da Companhia na data de outorga. Base para o cálculo do efeito de diluição (laudo: 82.533.280).</span></span></label><input type="number" id="sharesOutstanding" data-bind="grant.pricingInputs.sharesOutstanding" step="1"></div>
+            <div class="field"><label class="field-label" for="fvPerUnitDiluted">FV unitário com diluição <span class="tt" tabindex="0">?<span class="tt-content">FV da opção ajustado pelo efeito de diluição (S′). No laudo SOP 2021: US$ 0,83 vs US$ 0,84 sem diluição. Documental — o cálculo usa o FV de "Dados da outorga".</span></span></label><input type="number" id="fvPerUnitDiluted" data-bind="grant.pricingInputs.fvPerUnitDiluted" step="0.01"></div>
+          </div>
+          <div class="alert info" style="margin-top: 14px;">
+            <strong>Campos documentais.</strong> Não entram no cálculo — registrados para auditoria. O FV unitário usado na conta é o informado em "Dados da outorga".
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Vesting</div>
+        <div class="form-grid cols-3" style="margin-bottom: 16px;">
+          <div class="field">
+            <label class="field-label">Tipo de vesting <span class="tt" tabindex="0">?<span class="tt-content">Cliff: todo o lote vesta de uma só vez. Graded: parcelas vestam em datas diferentes — método acelerado obrigatório (cada tranche tratada como outorga separada).</span></span></label>
+            <div class="segmented" data-control="vesting.type">
+              <button data-value="cliff">Cliff</button>
+              <button data-value="graded" class="active">Graded</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="forfeitureRate">Exit rate / forfeiture esperado (%) <span class="tt" tabindex="0">?<span class="tt-content">% esperado de instrumentos que não vestarão por saída de beneficiários (§19-21). No laudo SOP 2021 o exit rate é 4% (participação histórica de 96%). Reduz proporcionalmente a despesa.</span></span></label>
+            <input type="number" id="forfeitureRate" data-bind="vesting.expectedForfeitureRatePct" step="0.5" min="0" max="100" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="settlementDays">Lock-up / liquidação (dias) <span class="tt" tabindex="0">?<span class="tt-content">Dias adicionais entre a data técnica de vest e a liquidação efetiva das ações (comunicação + transferência + lock-up). No laudo SOP 2021 são 60 dias, gerando maturidades de 1,2 / 2,2 / 3,2 / 4,2 anos. Estende o período de apropriação de cada tranche.</span></span></label>
+            <input type="number" id="settlementDays" data-bind="vesting.settlementDays" step="1" min="0" value="0">
+          </div>
+        </div>
+
+        <div class="card-tag">Tranches</div>
+        <div class="tranches" id="tranches-list"></div>
+        <div class="tranches-summary" id="tranches-summary"></div>
+        <button class="btn btn-ghost btn-sm" id="add-tranche" style="margin-top: 10px;">+ Adicionar tranche</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Condições de vesting</div>
+
+        <div class="form-grid cols-2" style="margin-bottom: 14px;">
+          <div class="field">
+            <label class="field-label">Condição de serviço (descrição)</label>
+            <textarea data-bind="vesting.conditions.service.description" placeholder="ex.: Permanência ininterrupta durante o período de vesting."></textarea>
+          </div>
+        </div>
+
+        <div class="form-grid cols-2" style="margin-bottom: 14px;">
+          <div class="field">
+            <label class="field-label">Condição de performance não-mercado <span class="tt" tabindex="0">?<span class="tt-content">Ex.: meta de EBITDA, receita, ROIC. Reavaliada a cada data-base — afeta a estimativa do número de instrumentos a vestar (§19-21).</span></span></label>
+            <textarea data-bind="vesting.conditions.nonMarketPerformance.description" placeholder="ex.: Atingir 90% do EBITDA orçado em 2027."></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label" for="probability">Probabilidade de atingimento (%) <span class="tt" tabindex="0">?<span class="tt-content">Estimativa atual de atingimento. Multiplicador do número esperado de instrumentos a vestar.</span></span></label>
+            <input type="number" id="probability" data-bind="vesting.conditions.nonMarketPerformance.probabilityPct" step="1" min="0" max="100" value="100">
+          </div>
+        </div>
+
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label class="field-label">Condição de mercado (descrição) <span class="tt" tabindex="0">?<span class="tt-content">Ex.: TSR, preço-alvo. Incorporada ao FV pelo atuário — NÃO se reajusta a despesa se não for atingida (§21).</span></span></label>
+            <textarea data-bind="vesting.conditions.market.description" placeholder="ex.: TSR ≥ Ibovespa + 5% no final de 2028."></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ABA 3 · RECHARGE
+         ============================================================ -->
+    <section data-tab-content="recharge">
+      <div class="panel">
+        <div class="panel-title">Acordo de recharge intragrupo</div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="toggle">
+            <input type="checkbox" id="rechargeEnabled" data-bind="recharge.enabled">
+            <span class="toggle-track"></span>
+            <span class="toggle-label">Há compromisso de reembolso à controladora?</span>
+          </label>
+        </div>
+
+        <div id="recharge-fields" class="hide">
+          <div class="alert info" style="margin-bottom: 16px;">
+            <strong>Tratamento contábil.</strong> Recharge total (= 100% do FV) torna a transação cash-settled para a empregadora (passivo). Recharge parcial gera tratamento <em>híbrido</em>: parte equity-settled (sem reembolso) + parte cash-settled (proporcional ao reembolso). Strike-on-exercise não afeta a apropriação durante o vesting.
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label class="field-label" for="rechargeModality">Modalidade de repasse <span class="tt" tabindex="0">?<span class="tt-content">Define a base de cálculo do reembolso. "Percentual do custo" é a forma mais comum (ex.: 100% do FV reconhecido = full recharge).</span></span></label>
+              <select id="rechargeModality" data-bind="recharge.modality">
+                <option value="fixedPerInstrument">Valor fixo por instrumento (R$/inst.)</option>
+                <option value="percentOfCost">Percentual do custo total (%)</option>
+                <option value="fixedTotal">Valor fixo total (R$)</option>
+                <option value="strikeOnExercise">Preço de exercício (no exercício)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="rechargeAmount">Valor / percentual</label>
+              <input type="number" id="rechargeAmount" data-bind="recharge.amount" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label class="field-label" for="rechargePeriodicity">Periodicidade do repasse</label>
+              <select id="rechargePeriodicity" data-bind="recharge.periodicity">
+                <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="annual" selected>Anual</option>
+                <option value="onExercise">No exercício / vesting</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="rechargeStartDate">Início dos repasses</label>
+              <input type="date" id="rechargeStartDate" data-bind="recharge.startDate">
+            </div>
+          </div>
+
+          <div class="chips" style="margin-top: 18px;">
+            <div class="chip">
+              <div class="chip-label">Total a reembolsar</div>
+              <div class="chip-value" id="recharge-total">—</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">% Cash-settled</div>
+              <div class="chip-value" id="recharge-cash-pct">—</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">% Equity-settled</div>
+              <div class="chip-value" id="recharge-equity-pct">—</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 18px;">
+            <div class="card-tag" style="margin-bottom: 8px;">Cronograma de repasses previstos</div>
+            <div class="table-wrap">
+              <table class="data" id="recharge-table">
+                <thead><tr><th>Período</th><th>Repasse</th><th>Acumulado</th><th>Saldo</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ABA 4 · RESULTADO
+         ============================================================ -->
+    <section data-tab-content="resultado">
+
+      <div id="validation-alert"></div>
+
+      <div class="panel">
+        <div class="panel-title">Indicadores</div>
+        <div class="chips" id="kpi-chips"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <div class="panel-title" style="margin-bottom: 0;">Lançamentos por entidade</div>
+          <div class="segmented" data-control="view">
+            <button data-value="annual" class="active">Do período</button>
+            <button data-value="cumulative">Acumulado</button>
+            <button data-value="total">Total do vesting</button>
+          </div>
+        </div>
+        <div class="entries" id="entries-wrap"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Cronograma de despesa · período a período</div>
+        <div class="table-wrap">
+          <table class="data" id="schedule-table">
+            <thead><tr>
+              <th>Período</th>
+              <th>Despesa<br>do período</th>
+              <th>Equity-settled</th>
+              <th>Cash-settled</th>
+              <th>Acumulado</th>
+              <th>A apropriar</th>
+              <th>Repasse</th>
+              <th>Repasse<br>acumulado</th>
+            </tr></thead>
+            <tbody></tbody>
+            <tfoot><tr id="schedule-totals"></tr></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Apropriação visual · período a período</div>
+        <div class="chart-wrap">
+          <div class="chart" id="chart"></div>
+          <div class="chart-legend">
+            <div class="chart-legend-item"><span class="chart-legend-dot" style="background: var(--primary);"></span>Equity-settled</div>
+            <div class="chart-legend-item"><span class="chart-legend-dot" style="background: var(--warning);"></span>Cash-settled</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Memória de cálculo</div>
+        <div class="accordion" id="memory"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Exportar</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary" id="export-csv-schedule">CSV · cronograma</button>
+          <button class="btn" id="export-csv-entries">CSV · lançamentos</button>
+          <button class="btn" id="export-print">Imprimir / PDF</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================
+         ABA 5 · REFERÊNCIAS
+         ============================================================ -->
+    <section data-tab-content="referencias">
+      <div class="panel">
+        <div class="panel-heading">Referências normativas aplicadas</div>
+        <div class="panel-sub">Parágrafos do IFRS 2 e CPC 10 (R1) que sustentam a lógica desta calculadora.</div>
+
+        <div class="accordion">
+          <div class="acc-item">
+            <button class="acc-trigger">§43A-43D · SBP entre entidades do grupo<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Define o tratamento de SBP intragrupo. Princípio central (§43B-b): a entidade que <strong>recebe os serviços</strong> reconhece a transação como equity-settled <strong>a menos que</strong> tenha obrigação de liquidar — caso em que é cash-settled. A entidade que <strong>liquida</strong> sem receber serviços reconhece como equity-settled.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">§B45-B61 · Aplicação prática intragrupo<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Detalhamento operacional. <code>§B53-B55</code>: reconhecimento de aumento do investimento na controladora como contribuição. <code>§B59-B61</code>: tratamento de acordos de recharge — o reembolso da controlada cria obrigação de liquidar, configurando cash-settled na empregadora.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">§IG11 · Graded vesting (método acelerado)<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Em graded vesting (parcelas com vest dates diferentes), cada tranche é tratada como outorga separada. A despesa é front-loaded — concentrada nos primeiros períodos, pois tranches de vesting curto absorvem proporcionalmente mais nos primeiros exercícios.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">§19-21 · Condições de serviço e performance<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Condições de serviço e performance <strong>não-mercado</strong> ajustam o número esperado de instrumentos a vestar — reavaliadas a cada data-base. Forfeitures (saídas antecipadas) reduzem a despesa retrospectivamente.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">§21 · Condições de mercado<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Condições de mercado (TSR, preço-alvo) são <strong>incorporadas ao fair value</strong> pelo modelo do atuário. Não se ajusta a despesa se a meta de mercado não for atingida — diferente das condições não-mercado.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">CPC 18 (R2) / IAS 28 · Equivalência patrimonial<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Aplica-se ao lançamento de MEP na controladora sobre o prejuízo apurado na empregadora pelo reconhecimento da despesa. O investimento líquido na empregadora retorna a zero (aporte presumido + MEP).</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-trigger">CPC 23 / IAS 8 · Correção de erros<span class="acc-arrow">›</span></button>
+            <div class="acc-content">
+              <p>Quando a empregadora não reconheceu a despesa em períodos passados, a correção é tratada como erro de período anterior: aplicação retrospectiva, ajuste em Lucros Acumulados, reapresentação de comparativos.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert warning" style="margin-top: 20px;">
+          <strong>Limitações desta versão.</strong>
+          <ul>
+            <li><strong>Remensuração FV de cash-settled</strong> (§30): o passivo é remensurado a FV a cada data-base. Esta calculadora usa o FV de outorga ao longo do vesting — para uso operacional, atualizar o campo "FV unitário" com a marcação do atuário em cada data de reporte.</li>
+            <li><strong>Modificações de planos</strong> (§26-29): incrementos favoráveis ao beneficiário geram despesa adicional. Não modelado nesta versão — registrar manualmente como ajuste.</li>
+            <li><strong>Cancelamentos vs forfeitures</strong> (§28A): cancelamento acelera reconhecimento; forfeiture reverte. Esta versão modela apenas forfeiture rate esperado, sem distinção true-up por evento.</li>
+            <li><strong>Substituição em business combination</strong> (IFRS 3 §B56-B62): warrants/opções concedidos em substituição em aquisições. Análise separada — não coberto.</li>
+            <li><strong>Liquidação antecipada</strong>: aceleração do reconhecimento durante o vesting. Não coberto.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       ACTION BAR
+       ============================================================ -->
+  <footer class="action-bar">
+    <button class="btn btn-sm" id="action-save">Salvar rascunho</button>
+    <button class="btn btn-sm" id="action-load">Carregar</button>
+    <button class="btn btn-sm btn-danger" id="action-clear">Limpar</button>
+    <span style="font-size: 11.5px; color: var(--text-tertiary); margin-left: 6px;" id="last-saved"></span>
+  </footer>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay hide" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirmar</h3>
+    <p id="modal-body">Tem certeza?</p>
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   CONSTANTES E HELPERS
+   ============================================================ */
+const STORAGE_KEY = 'asaas_sbp_calc_v3';
+const STORAGE_KEY_V2 = 'asaas_sbp_calc_v2'; // legacy (single plan)
+const STORAGE_LAST_SAVED = 'asaas_sbp_calc_lastsaved_v1';
+
+const MS_PER_DAY = 86400000;
+const DAYS_PER_YEAR = 365.25;
+
+function $(sel, root = document) { return root.querySelector(sel); }
+function $$(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+
+function fmtBRL(v, decimals = 2) {
+  if (!isFinite(v)) v = 0;
+  return v.toLocaleString('pt-BR', { 
+    style: 'currency', currency: 'BRL',
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals 
+  });
+}
+function fmtNum(v, decimals = 0) {
+  if (!isFinite(v)) v = 0;
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function fmtPct(v, decimals = 1) {
+  if (!isFinite(v)) v = 0;
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + '%';
+}
+function fmtShort(v) {
+  if (!isFinite(v)) return 'R$ 0';
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return 'R$ ' + (v/1e9).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2}) + ' bi';
+  if (abs >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2}) + ' mi';
+  if (abs >= 1e3) return 'R$ ' + (v/1e3).toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 1}) + ' mil';
+  return fmtBRL(v);
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  if (s instanceof Date) return s;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = (d instanceof Date) ? d : parseDate(d);
+  return dt.toLocaleDateString('pt-BR');
+}
+function isoDate(d) {
+  if (!d) return '';
+  const dt = (d instanceof Date) ? d : parseDate(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,'0');
+  const day = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function addMonths(d, n) {
+  const r = new Date(d.getTime());
+  r.setMonth(r.getMonth() + n);
+  return r;
+}
+function addYears(d, n) {
+  const r = new Date(d.getTime());
+  r.setFullYear(r.getFullYear() + n);
+  return r;
+}
+function addDays(d, n) { return new Date(d.getTime() + n * MS_PER_DAY); }
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+function daysBetween(a, b) { return Math.max(0, Math.round((b - a) / MS_PER_DAY)); }
+function dateMin(a, b) { return a < b ? a : b; }
+function dateMax(a, b) { return a > b ? a : b; }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+function defaultPlan() {
+  return {
+    schemaVersion: 2,
+    identification: {
+      planName: 'SHARE OPTION AGREEMENT · SOP 2021',
+      grantor: { name: 'Asaas LTD', taxId: '' },
+      employer: { name: 'Asaas Gestão Financeira IP S/A', taxId: '', functionalCurrency: 'BRL' }
+    },
+    grant: {
+      grantDate: '2021-09-30',
+      instrumentCount: 948198,
+      fvPerUnit: 0.8405,
+      grantCurrency: 'USD',
+      fxRate: 1.00,
+      participation: 100,
+      pricingInputs: {
+        model: 'black-scholes',
+        sharePrice: 0.84, strikePrice: 0.001,
+        volatilityPct: 58.67, dividendYieldPct: 0,
+        riskFreeRatePct: 9.55, expectedTermYears: 2.6,
+        sharesOutstanding: 82533280,
+        fvPerUnitDiluted: 0.83
+      }
+    },
+    vesting: {
+      type: 'graded',
+      settlementDays: 60,
+      tranches: [
+        { pct: 25, vestingPeriodYears: 1 },
+        { pct: 25, vestingPeriodYears: 2 },
+        { pct: 25, vestingPeriodYears: 3 },
+        { pct: 25, vestingPeriodYears: 4 }
+      ],
+      expectedForfeitureRatePct: 4,
+      conditions: {
+        service: { description: 'Permanência do beneficiário até o fim de cada período de carência (exit rate 4%).' },
+        nonMarketPerformance: { description: '', probabilityPct: 100 },
+        market: { description: '' }
+      }
+    },
+    recharge: {
+      enabled: false,
+      modality: 'percentOfCost',
+      amount: 0,
+      periodicity: 'annual',
+      startDate: ''
+    },
+    reportingDate: isoDate(new Date()),
+    periodGranularity: 'monthly',
+    view: 'annual'
+  };
+}
+
+// Plano completamente vazio — usado pelo botão "Limpar"
+function emptyPlan() {
+  return {
+    schemaVersion: 2,
+    identification: {
+      planName: '',
+      grantor: { name: '', taxId: '' },
+      employer: { name: '', taxId: '', functionalCurrency: 'BRL' }
+    },
+    grant: {
+      grantDate: '',
+      instrumentCount: 0,
+      fvPerUnit: 0,
+      grantCurrency: 'BRL',
+      fxRate: 1,
+      participation: 100,
+      pricingInputs: {
+        model: 'black-scholes',
+        sharePrice: 0, strikePrice: 0,
+        volatilityPct: 0, dividendYieldPct: 0,
+        riskFreeRatePct: 0, expectedTermYears: 0,
+        sharesOutstanding: 0,
+        fvPerUnitDiluted: 0
+      }
+    },
+    vesting: {
+      type: 'graded',
+      settlementDays: 0,
+      tranches: [{ pct: 100, vestingPeriodYears: 1 }],
+      expectedForfeitureRatePct: 0,
+      conditions: {
+        service: { description: '' },
+        nonMarketPerformance: { description: '', probabilityPct: 100 },
+        market: { description: '' }
+      }
+    },
+    recharge: {
+      enabled: false,
+      modality: 'percentOfCost',
+      amount: 0,
+      periodicity: 'annual',
+      startDate: ''
+    },
+    reportingDate: isoDate(new Date()),
+    periodGranularity: 'annual',
+    view: 'annual'
+  };
+}
+
+/* ============================================================
+   ESTADO MULTI-PLANO
+   ============================================================ */
+const CONSOLIDATED_ID = '__consolidated__';
+
+const state = {
+  plans: [],          // [{ id, plan }]
+  activeId: null      // id do plano ativo OU CONSOLIDATED_ID
+};
+
+let plan = defaultPlan(); // referência ao plano ativo (sempre = objeto dentro de state.plans)
+let errors = {};
+let saveTimer = null;
+
+function genPlanId() {
+  return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function currentPlanEntry() {
+  return state.plans.find(p => p.id === state.activeId) || null;
+}
+
+function isConsolidatedView() {
+  return state.activeId === CONSOLIDATED_ID;
+}
+
+function setActivePlan(id) {
+  state.activeId = id;
+  if (id !== CONSOLIDATED_ID) {
+    const entry = currentPlanEntry();
+    if (entry) plan = entry.plan;
+  }
+}
+
+function addNewPlan(seed, makeActive = true) {
+  const p = seed || emptyPlan();
+  if (!p.identification.planName) p.identification.planName = 'Plano ' + (state.plans.length + 1);
+  const id = genPlanId();
+  state.plans.push({ id, plan: p });
+  if (makeActive) setActivePlan(id);
+  return id;
+}
+
+function duplicateActivePlan() {
+  if (isConsolidatedView()) return null;
+  const entry = currentPlanEntry();
+  if (!entry) return null;
+  const cloned = JSON.parse(JSON.stringify(entry.plan));
+  cloned.identification.planName = (cloned.identification.planName || 'Plano') + ' (cópia)';
+  return addNewPlan(cloned, true);
+}
+
+function deleteActivePlan() {
+  if (isConsolidatedView()) return;
+  const idx = state.plans.findIndex(p => p.id === state.activeId);
+  if (idx < 0) return;
+  state.plans.splice(idx, 1);
+  if (state.plans.length === 0) {
+    addNewPlan(emptyPlan(), true);
+  } else {
+    setActivePlan(state.plans[Math.max(0, idx - 1)].id);
+  }
+}
+
+/* ============================================================
+   PERSISTÊNCIA · localStorage (state multi-plano)
+   ============================================================ */
+function snapshotState() {
+  return { plans: state.plans, activeId: state.activeId };
+}
+
+function persistDebounced() {
+  if (saveTimer) clearTimeout(saveTimer);
+  setStatus('saving', 'Salvando…');
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshotState()));
+      const now = new Date().toISOString();
+      localStorage.setItem(STORAGE_LAST_SAVED, now);
+      updateLastSaved(now);
+      setStatus('ok', 'Salvo automaticamente');
+    } catch (e) {
+      console.error('Persist error', e);
+      setStatus('error', 'Erro ao salvar');
+    }
+  }, 400);
+}
+
+function saveExplicit() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshotState()));
+    const now = new Date().toISOString();
+    localStorage.setItem(STORAGE_LAST_SAVED, now);
+    updateLastSaved(now);
+    setStatus('ok', 'Rascunho salvo');
+  } catch (e) { setStatus('error', 'Erro ao salvar'); }
+}
+
+// Faz merge defensivo de um plano (pode vir de versão anterior, sem campos novos)
+function normalizePlanShape(parsed) {
+  const d = defaultPlan();
+  const out = Object.assign({}, d, parsed || {});
+  out.identification = Object.assign({}, d.identification, parsed.identification || {});
+  out.identification.grantor = Object.assign({}, d.identification.grantor, (parsed.identification && parsed.identification.grantor) || {});
+  out.identification.employer = Object.assign({}, d.identification.employer, (parsed.identification && parsed.identification.employer) || {});
+  out.grant = Object.assign({}, d.grant, parsed.grant || {});
+  out.grant.pricingInputs = Object.assign({}, d.grant.pricingInputs, (parsed.grant && parsed.grant.pricingInputs) || {});
+  out.vesting = Object.assign({}, d.vesting, parsed.vesting || {});
+  out.vesting.conditions = Object.assign({}, d.vesting.conditions, (parsed.vesting && parsed.vesting.conditions) || {});
+  out.recharge = Object.assign({}, d.recharge, parsed.recharge || {});
+  return out;
+}
+
+function loadStored() {
+  try {
+    // Tentar formato v3 (multi-plano)
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.plans) && parsed.plans.length > 0) {
+        state.plans = parsed.plans.map(entry => ({
+          id: entry.id || genPlanId(),
+          plan: normalizePlanShape(entry.plan || entry)
+        }));
+        const wantedId = parsed.activeId;
+        if (wantedId === CONSOLIDATED_ID) {
+          state.activeId = CONSOLIDATED_ID;
+        } else if (state.plans.some(p => p.id === wantedId)) {
+          setActivePlan(wantedId);
+        } else {
+          setActivePlan(state.plans[0].id);
+        }
+        const ls = localStorage.getItem(STORAGE_LAST_SAVED);
+        if (ls) updateLastSaved(ls);
+        return true;
+      }
+    }
+    // Migração de v2 (single plan)
+    const rawV2 = localStorage.getItem(STORAGE_KEY_V2);
+    if (rawV2) {
+      const parsedV2 = JSON.parse(rawV2);
+      const normalized = normalizePlanShape(parsedV2);
+      state.plans = [{ id: genPlanId(), plan: normalized }];
+      setActivePlan(state.plans[0].id);
+      localStorage.removeItem(STORAGE_KEY_V2);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshotState())); } catch (e) {}
+      const ls = localStorage.getItem(STORAGE_LAST_SAVED);
+      if (ls) updateLastSaved(ls);
+      return true;
+    }
+  } catch (e) { console.warn('Load failed', e); }
+  return false;
+}
+
+function updateLastSaved(iso) {
+  const dt = new Date(iso);
+  $('#last-saved').textContent = 'Último salvamento: ' + dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function setStatus(kind, text) {
+  $('#status-dot').className = 'status-dot ' + (kind === 'ok' ? '' : kind);
+  $('#status-text').textContent = text;
+}
+
+/* ============================================================
+   STATE ACCESS · path "a.b.c"
+   ============================================================ */
+function getByPath(obj, path) {
+  return path.split('.').reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
+}
+function setByPath(obj, path, value) {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (cur[keys[i]] == null) cur[keys[i]] = {};
+    cur = cur[keys[i]];
+  }
+  cur[keys[keys.length - 1]] = value;
+}
+
+/* ============================================================
+   VALIDAÇÃO
+   ============================================================ */
+function validate() {
+  errors = {};
+  const e = errors;
+
+  if (!plan.identification.planName?.trim()) e['identification.planName'] = 'Obrigatório';
+  if (!plan.identification.grantor.name?.trim()) e['identification.grantor.name'] = 'Obrigatório';
+  if (!plan.identification.employer.name?.trim()) e['identification.employer.name'] = 'Obrigatório';
+
+  if (!plan.grant.grantDate) e['grant.grantDate'] = 'Obrigatório';
+  if (!plan.grant.instrumentCount || plan.grant.instrumentCount <= 0) e['grant.instrumentCount'] = 'Deve ser maior que zero';
+  if (!plan.grant.fvPerUnit || plan.grant.fvPerUnit <= 0) e['grant.fvPerUnit'] = 'FV unitário deve ser positivo';
+
+  // Tranches sum to 100%
+  const sumPct = plan.vesting.tranches.reduce((s, t) => s + (Number(t.pct) || 0), 0);
+  if (Math.abs(sumPct - 100) > 0.01) e['vesting.tranches'] = `Soma das tranches = ${fmtPct(sumPct)} (deve ser 100%)`;
+
+  // Vesting periods positive
+  plan.vesting.tranches.forEach((t, i) => {
+    if (!t.vestingPeriodYears || t.vestingPeriodYears <= 0) e[`vesting.tranches[${i}].vestingPeriodYears`] = 'Deve ser positivo';
+  });
+
+  return Object.keys(e).length === 0;
+}
+
+/* ============================================================
+   MOTOR DE CÁLCULO
+   ============================================================ */
+function computeBase() {
+  // FV unitário em moeda local da empregadora
+  // Se outorga em mesma moeda da empregadora, FX = 1
+  const sameCurrency = plan.grant.grantCurrency === plan.identification.employer.functionalCurrency;
+  const fx = sameCurrency ? 1 : (Number(plan.grant.fxRate) || 1);
+  const fvLocal = (Number(plan.grant.fvPerUnit) || 0) * fx;
+
+  // Ajustes por probabilidade e forfeiture
+  const probAdj = (Number(plan.vesting.conditions.nonMarketPerformance.probabilityPct) || 100) / 100;
+  const fAdj = 1 - ((Number(plan.vesting.expectedForfeitureRatePct) || 0) / 100);
+  const adjustedInstruments = (Number(plan.grant.instrumentCount) || 0) * probAdj * fAdj;
+
+  const totalFV = adjustedInstruments * fvLocal;
+
+  return { fx, fvLocal, probAdj, fAdj, adjustedInstruments, totalFV, sameCurrency };
+}
+
+function buildTranches(base) {
+  // Para cliff: apenas 1 tranche = 100% do total no maior período
+  const grant = parseDate(plan.grant.grantDate);
+  const isCliff = plan.vesting.type === 'cliff';
+  const sourceTranches = isCliff
+    ? [{ pct: 100, vestingPeriodYears: plan.vesting.tranches.reduce((m, t) => Math.max(m, Number(t.vestingPeriodYears)||0), 0) || 4 }]
+    : plan.vesting.tranches;
+
+  const settlementDays = Math.max(0, Number(plan.vesting.settlementDays) || 0);
+
+  return sourceTranches.map((t, idx) => {
+    const months = Math.round((Number(t.vestingPeriodYears) || 0) * 12);
+    // Data técnica de vest = grant + N anos; soma-se o lock-up/liquidação (ex.: 60 dias)
+    // para refletir a maturidade efetiva da opção (laudo: 1,2 / 2,2 / 3,2 / 4,2 anos).
+    const vestTechnical = addMonths(grant, months);
+    const vestEndExclusive = addDays(vestTechnical, settlementDays);
+    // vestEnd é o último dia INCLUSIVO do período de apropriação
+    const vestEnd = new Date(vestEndExclusive.getTime() - MS_PER_DAY);
+    const totalFV = base.totalFV * ((Number(t.pct) || 0) / 100);
+    // Dias inclusivos: [grant, vestEnd] — coerente com overlapDays inclusivo
+    const vestingDays = Math.max(1, daysBetween(grant, vestEnd) + 1);
+    return {
+      index: idx,
+      pct: Number(t.pct) || 0,
+      years: Number(t.vestingPeriodYears) || 0,
+      settlementDays,
+      vestEnd,
+      totalFV,
+      vestingDays,
+      dailyAccrual: totalFV / vestingDays,
+      grantDate: grant
+    };
+  });
+}
+
+function computeRechargeRatio(base) {
+  // Retorna { cashPortion 0..1, equityPortion 0..1, totalRecharge }
+  if (!plan.recharge.enabled) return { cashPortion: 0, equityPortion: 1, totalRecharge: 0 };
+  const totalFV = base.totalFV;
+  const amount = Number(plan.recharge.amount) || 0;
+  let totalRecharge = 0;
+  switch (plan.recharge.modality) {
+    case 'fixedPerInstrument':
+      totalRecharge = base.adjustedInstruments * amount;
+      break;
+    case 'percentOfCost':
+      totalRecharge = totalFV * (amount / 100);
+      break;
+    case 'fixedTotal':
+      totalRecharge = amount;
+      break;
+    case 'strikeOnExercise':
+      // Não afeta apropriação durante o vesting
+      totalRecharge = 0;
+      break;
+  }
+  const cashPortion = totalFV > 0 ? Math.min(1, totalRecharge / totalFV) : 0;
+  return { cashPortion, equityPortion: 1 - cashPortion, totalRecharge };
+}
+
+function buildPeriods(tranches, base) {
+  // Gera períodos calendários baseados na granularidade
+  const grant = parseDate(plan.grant.grantDate);
+  const lastVest = tranches.reduce((m, t) => t.vestEnd > m ? t.vestEnd : m, grant);
+  const granularity = plan.periodGranularity || 'annual';
+
+  const periods = [];
+  let cursor = startOfMonth(grant);
+
+  while (cursor <= lastVest) {
+    let periodEnd;
+    if (granularity === 'monthly') {
+      periodEnd = endOfMonth(cursor);
+    } else if (granularity === 'quarterly') {
+      // Termina no fim do trimestre do cursor
+      const qEnd = new Date(cursor.getFullYear(), Math.floor(cursor.getMonth()/3)*3 + 3, 0);
+      periodEnd = qEnd;
+    } else {
+      // annual: fim do ano
+      periodEnd = new Date(cursor.getFullYear(), 11, 31);
+    }
+
+    const pStart = dateMax(cursor, grant);
+    const pEnd = dateMin(periodEnd, lastVest);
+    if (pEnd < pStart) break;
+
+    // Calcula despesa do período por tranche
+    let totalExpense = 0;
+    const perTranche = tranches.map(t => {
+      const overlapStart = dateMax(pStart, t.grantDate);
+      const overlapEnd = dateMin(pEnd, t.vestEnd);
+      if (overlapEnd < overlapStart) return 0;
+      // +1 dia para incluir endpoints
+      const overlapDays = daysBetween(overlapStart, overlapEnd) + 1;
+      const expense = overlapDays * t.dailyAccrual;
+      totalExpense += expense;
+      return expense;
+    });
+
+    periods.push({
+      label: formatPeriodLabel(pStart, pEnd, granularity),
+      start: new Date(pStart.getTime()),
+      end: new Date(pEnd.getTime()),
+      perTranche,
+      totalExpense
+    });
+
+    // Avança para o início do próximo período a partir do CURSOR (início do mês
+    // corrente), não do periodEnd — caso contrário, com periodEnd no último dia do
+    // mês, addMonths poderia pular um mês inteiro.
+    if (granularity === 'monthly') {
+      cursor = addMonths(cursor, 1);
+    } else if (granularity === 'quarterly') {
+      cursor = addMonths(startOfMonth(periodEnd), 1);
+    } else {
+      cursor = new Date(periodEnd.getFullYear() + 1, 0, 1);
+    }
+    cursor = startOfMonth(cursor);
+  }
+
+  return periods;
+}
+
+function formatPeriodLabel(start, end, granularity) {
+  if (granularity === 'monthly') {
+    return start.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+  } else if (granularity === 'quarterly') {
+    const q = Math.floor(start.getMonth() / 3) + 1;
+    return `${q}T${start.getFullYear()}`;
+  } else {
+    return String(start.getFullYear());
+  }
+}
+
+function buildSchedule() {
+  const base = computeBase();
+  const tranches = buildTranches(base);
+  const recharge = computeRechargeRatio(base);
+  const periods = buildPeriods(tranches, base);
+
+  // Adiciona splits e acumulados
+  let cumulative = 0;
+  let cumulativeRecharge = 0;
+  const totalFV = base.totalFV;
+  const totalRecharge = recharge.totalRecharge;
+
+  // Distribui recharge pelos períodos conforme periodicidade
+  const rechargePerPeriod = computeRechargeByPeriod(periods, recharge);
+
+  const enriched = periods.map((p, i) => {
+    cumulative += p.totalExpense;
+    const equityPortion = p.totalExpense * recharge.equityPortion;
+    const cashPortion = p.totalExpense * recharge.cashPortion;
+    const recharge_i = rechargePerPeriod[i] || 0;
+    cumulativeRecharge += recharge_i;
+
+    return {
+      ...p,
+      equityPortion, cashPortion,
+      cumulative,
+      remaining: Math.max(0, totalFV - cumulative),
+      recharge: recharge_i,
+      rechargeCumulative: cumulativeRecharge,
+      rechargeRemaining: Math.max(0, totalRecharge - cumulativeRecharge)
+    };
+  });
+
+  return { base, tranches, recharge, periods: enriched };
+}
+
+/* ----- Cronograma consolidado: agrega múltiplos planos ----- */
+function buildConsolidatedSchedule() {
+  // Roda buildSchedule() para cada plano, preservando 'plan' como variável global
+  const savedPlan = plan;
+  const perPlan = [];
+  let totalFV = 0;
+  let totalRecharge = 0;
+  state.plans.forEach((entry) => {
+    plan = entry.plan;
+    try {
+      // Valida; se houver erros graves, pula
+      const v = validate();
+      const sched = buildSchedule();
+      perPlan.push({
+        id: entry.id,
+        name: entry.plan.identification.planName || 'Plano sem nome',
+        functionalCurrency: entry.plan.identification.employer.functionalCurrency,
+        schedule: sched,
+        valid: v
+      });
+      totalFV += sched.base.totalFV;
+      totalRecharge += (sched.recharge && sched.recharge.totalRecharge) || 0;
+    } catch (e) {
+      perPlan.push({
+        id: entry.id,
+        name: entry.plan.identification.planName || 'Plano sem nome',
+        functionalCurrency: entry.plan.identification.employer.functionalCurrency,
+        schedule: null,
+        valid: false,
+        error: e && e.message
+      });
+    }
+  });
+  plan = savedPlan;
+  errors = {}; // limpa erros — consolidado não exibe erros individuais
+
+  // Detecta se planos têm moedas funcionais diferentes
+  const currencies = new Set(perPlan.filter(p => p.schedule).map(p => p.functionalCurrency));
+  const mixedCurrencies = currencies.size > 1;
+
+  // Agrega períodos por label de período (alinhando granularidade automaticamente)
+  // Estratégia: usa a granularidade do PRIMEIRO plano válido como referência
+  const ref = perPlan.find(p => p.schedule);
+  if (!ref) return null;
+
+  const periodMap = new Map();
+  perPlan.forEach(p => {
+    if (!p.schedule) return;
+    p.schedule.periods.forEach(period => {
+      const key = period.label;
+      if (!periodMap.has(key)) {
+        periodMap.set(key, {
+          label: period.label,
+          start: period.start,
+          end: period.end,
+          totalExpense: 0,
+          equityPortion: 0,
+          cashPortion: 0,
+          recharge: 0,
+          cumulative: 0,
+          remaining: 0,
+          rechargeCumulative: 0,
+          rechargeRemaining: 0
+        });
+      }
+      const agg = periodMap.get(key);
+      agg.totalExpense += period.totalExpense;
+      agg.equityPortion += period.equityPortion || 0;
+      agg.cashPortion += period.cashPortion || 0;
+      agg.recharge += period.recharge || 0;
+    });
+  });
+  const aggPeriods = Array.from(periodMap.values()).sort((a, b) => a.start - b.start);
+  let cum = 0, cumR = 0;
+  aggPeriods.forEach(p => {
+    cum += p.totalExpense;
+    cumR += p.recharge;
+    p.cumulative = cum;
+    p.remaining = Math.max(0, totalFV - cum);
+    p.rechargeCumulative = cumR;
+    p.rechargeRemaining = Math.max(0, totalRecharge - cumR);
+  });
+
+  return {
+    isConsolidated: true,
+    perPlan,
+    mixedCurrencies,
+    currencies: Array.from(currencies),
+    base: { totalFV, totalAdjustedInstruments: null },
+    tranches: [],
+    recharge: { totalRecharge, equityPortion: 1, cashPortion: 0, modality: 'mixed' },
+    periods: aggPeriods
+  };
+}
+
+function computeRechargeByPeriod(periods, recharge) {
+  if (!plan.recharge.enabled || recharge.totalRecharge === 0) return periods.map(() => 0);
+  const periodicity = plan.recharge.periodicity;
+  const startDate = plan.recharge.startDate ? parseDate(plan.recharge.startDate) : null;
+
+  if (periodicity === 'onExercise') {
+    // Lump sum no último período
+    return periods.map((_, i) => i === periods.length - 1 ? recharge.totalRecharge : 0);
+  }
+
+  // Distribui ao longo dos períodos com base na proporção da despesa de cada período
+  // (alternativa razoável: proporcional à despesa do período, alinhando com timing do reconhecimento)
+  const totalExp = periods.reduce((s, p) => s + p.totalExpense, 0);
+  if (totalExp === 0) return periods.map(() => 0);
+
+  return periods.map(p => {
+    if (startDate && p.end < startDate) return 0;
+    return recharge.totalRecharge * (p.totalExpense / totalExp);
+  });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  renderPlansBar();
+  if (isConsolidatedView()) {
+    // Modo consolidado: oculta inputs editáveis, mostra agregado no Resultado
+    errors = {};
+    renderTabErrors();
+    renderConsolidatedOverlays();
+    renderResultado();
+    persistDebounced();
+    return;
+  }
+  // Modo individual (1 plano)
+  hideConsolidatedOverlays();
+  validate();
+  renderTabErrors();
+  renderInputs();
+  renderTranches();
+  renderIcBanner();
+  renderRecharge();
+  renderResultado();
+  persistDebounced();
+}
+
+function renderConsolidatedOverlays() {
+  // Adiciona classe que esconde o conteúdo via CSS e mostra placeholder
+  ['plano', 'outorga', 'recharge'].forEach(tab => {
+    const sec = document.querySelector('section[data-tab-content="' + tab + '"]');
+    if (!sec) return;
+    sec.classList.add('consolidated-locked');
+    // injeta placeholder se ainda não existir
+    if (!sec.querySelector('.consolidated-placeholder')) {
+      const ph = document.createElement('div');
+      ph.className = 'consolidated-placeholder tab-disabled-overlay';
+      ph.innerHTML = '<strong>Visão consolidada ativa</strong><br>' +
+        'A edição de campos individuais foi desabilitada porque a visão atual agrega múltiplos planos. ' +
+        'Selecione um plano específico no seletor acima para editar.';
+      sec.insertBefore(ph, sec.firstChild);
+    }
+  });
+}
+
+function hideConsolidatedOverlays() {
+  ['plano', 'outorga', 'recharge'].forEach(tab => {
+    const sec = document.querySelector('section[data-tab-content="' + tab + '"]');
+    if (!sec) return;
+    sec.classList.remove('consolidated-locked');
+    const ph = sec.querySelector('.consolidated-placeholder');
+    if (ph) ph.remove();
+  });
+}
+
+function renderTabErrors() {
+  // mapeia erros para abas
+  const tabMap = {
+    'identification.planName': 'plano',
+    'identification.grantor.name': 'plano',
+    'identification.employer.name': 'plano',
+    'grant.grantDate': 'outorga',
+    'grant.instrumentCount': 'outorga',
+    'grant.fvPerUnit': 'outorga',
+    'vesting.tranches': 'outorga'
+  };
+  const errTabs = new Set();
+  Object.keys(errors).forEach(k => {
+    for (const path in tabMap) if (k.startsWith(path)) errTabs.add(tabMap[path]);
+    if (k.startsWith('vesting.tranches')) errTabs.add('outorga');
+  });
+  $$('.tabs button').forEach(btn => {
+    btn.classList.toggle('has-errors', errTabs.has(btn.dataset.tab));
+  });
+}
+
+function renderInputs() {
+  // Sincroniza inputs com o estado
+  $$('[data-bind]').forEach(el => {
+    const path = el.dataset.bind;
+    const val = getByPath(plan, path);
+    if (el.type === 'checkbox') {
+      el.checked = !!val;
+    } else if (el.tagName === 'SELECT') {
+      el.value = val == null ? '' : val;
+    } else {
+      el.value = val == null ? '' : val;
+    }
+    // erro visual
+    const field = el.closest('.field');
+    if (field) {
+      const err = errors[path];
+      field.classList.toggle('has-error', !!err);
+      el.classList.toggle('invalid', !!err);
+      const errEl = field.querySelector('.field-error');
+      if (errEl) errEl.textContent = err || '';
+    }
+  });
+  // Segmented controls
+  $$('.segmented[data-control]').forEach(seg => {
+    const path = seg.dataset.control;
+    const val = getByPath(plan, path);
+    seg.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.value === String(val));
+    });
+  });
+  // Recharge visibility
+  $('#recharge-fields').classList.toggle('hide', !plan.recharge.enabled);
+}
+
+/* ----------- Tranches ----------- */
+function renderTranches() {
+  const wrap = $('#tranches-list');
+  wrap.innerHTML = '';
+  const isCliff = plan.vesting.type === 'cliff';
+
+  if (isCliff) {
+    wrap.innerHTML = `<div class="alert info">Em vesting cliff, todo o lote vesta em uma data única. Defina o período de vesting único abaixo.</div>`;
+    const row = document.createElement('div');
+    row.className = 'tranche-row';
+    row.innerHTML = `
+      <div class="tranche-index">1</div>
+      <div class="field">
+        <label class="field-label">% do lote</label>
+        <input type="number" value="100" disabled>
+      </div>
+      <div class="field">
+        <label class="field-label">Período até vest (anos)</label>
+        <input type="number" data-tranche-years="0" step="0.25" min="0.25" value="${plan.vesting.tranches[0]?.vestingPeriodYears || 4}">
+      </div>
+      <div></div>`;
+    wrap.appendChild(row);
+  } else {
+    plan.vesting.tranches.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'tranche-row';
+      row.innerHTML = `
+        <div class="tranche-index">${i + 1}</div>
+        <div class="field">
+          <label class="field-label">% do lote</label>
+          <input type="number" data-tranche-pct="${i}" step="0.01" min="0" max="100" value="${t.pct}">
+        </div>
+        <div class="field">
+          <label class="field-label">Período até vest (anos)</label>
+          <input type="number" data-tranche-years="${i}" step="0.25" min="0.25" value="${t.vestingPeriodYears}">
+        </div>
+        <button class="tranche-remove" data-tranche-remove="${i}" title="Remover tranche">×</button>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  // Summary
+  const sum = plan.vesting.tranches.reduce((s, t) => s + (Number(t.pct) || 0), 0);
+  const summary = $('#tranches-summary');
+  summary.classList.toggle('invalid', Math.abs(sum - 100) > 0.01 && !isCliff);
+  summary.innerHTML = isCliff
+    ? `<span>Modo cliff — toda a outorga vesta na data única.</span>`
+    : `<span>Soma das tranches</span><span class="font-mono">${fmtPct(sum, 2)}</span>`;
+
+  // Bind handlers
+  $$('[data-tranche-pct]', wrap).forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = +e.target.dataset.tranchePct;
+      plan.vesting.tranches[i].pct = Number(e.target.value) || 0;
+      render();
+    });
+  });
+  $$('[data-tranche-years]', wrap).forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = +e.target.dataset.trancheYears;
+      plan.vesting.tranches[i].vestingPeriodYears = Number(e.target.value) || 0;
+      render();
+    });
+  });
+  $$('[data-tranche-remove]', wrap).forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = +e.currentTarget.dataset.trancheRemove;
+      if (plan.vesting.tranches.length <= 1) return;
+      plan.vesting.tranches.splice(i, 1);
+      render();
+    });
+  });
+}
+
+/* ----------- IC banner ----------- */
+function renderIcBanner() {
+  const wrap = $('#ic-banner-wrap');
+  const isIC = plan.identification.grantor.name && plan.identification.employer.name
+    && plan.identification.grantor.name !== plan.identification.employer.name;
+  if (isIC) {
+    wrap.innerHTML = `
+      <div class="ic-banner">
+        <div class="ic-banner-icon">IC</div>
+        <div>
+          Operação <strong>intercompany</strong>: <strong>${escapeHtml(plan.identification.grantor.name)}</strong> outorga e <strong>${escapeHtml(plan.identification.employer.name)}</strong> recebe os serviços.
+          Tratamento conforme §43A-43D do IFRS 2 — despesa na empregadora, aumento de investimento na outorgante.
+        </div>
+      </div>`;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ----------- Recharge ----------- */
+function renderRecharge() {
+  if (!plan.recharge.enabled) {
+    $('#recharge-total').textContent = '—';
+    $('#recharge-cash-pct').textContent = '—';
+    $('#recharge-equity-pct').textContent = '—';
+    return;
+  }
+  const base = computeBase();
+  const ratio = computeRechargeRatio(base);
+  $('#recharge-total').textContent = fmtShort(ratio.totalRecharge);
+  $('#recharge-cash-pct').textContent = fmtPct(ratio.cashPortion * 100, 1);
+  $('#recharge-equity-pct').textContent = fmtPct(ratio.equityPortion * 100, 1);
+
+  // Cronograma de recharge
+  const schedule = buildSchedule();
+  const tbody = $('#recharge-table tbody');
+  tbody.innerHTML = '';
+  schedule.periods.forEach(p => {
+    if (p.recharge === 0) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.label}</td><td>${fmtBRL(p.recharge)}</td><td>${fmtBRL(p.rechargeCumulative)}</td><td>${fmtBRL(p.rechargeRemaining)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ----------- Resultado ----------- */
+function renderResultado() {
+  const consolidated = isConsolidatedView();
+  const alertEl = $('#validation-alert');
+
+  if (consolidated) {
+    alertEl.innerHTML = '';
+    const sched = buildConsolidatedSchedule();
+    if (!sched) {
+      alertEl.innerHTML = '<div class="alert danger"><strong>Nenhum plano com dados válidos para consolidar.</strong> Selecione um plano específico e preencha os campos obrigatórios.</div>';
+      $('#kpi-chips').innerHTML = '';
+      $('#entries-wrap').innerHTML = '';
+      $('#schedule-table tbody').innerHTML = '';
+      $('#chart').innerHTML = '';
+      $('#memory').innerHTML = '';
+      return;
+    }
+    if (sched.mixedCurrencies) {
+      alertEl.innerHTML = '<div class="alert warning"><strong>Atenção:</strong> os planos têm moedas funcionais diferentes (' + sched.currencies.join(', ') + '). A soma é numérica sem conversão entre moedas — interprete com cuidado.</div>';
+    }
+    renderKpis(sched);
+    renderEntries(sched);
+    renderScheduleTable(sched);
+    renderChart(sched);
+    renderMemory(sched);
+    return;
+  }
+
+  // Modo individual
+  const valid = Object.keys(errors).length === 0;
+  if (!valid) {
+    const items = Object.entries(errors).map(([k, v]) => `<li><code>${escapeHtml(k)}</code>: ${escapeHtml(v)}</li>`).join('');
+    alertEl.innerHTML = `<div class="alert danger"><strong>Há erros de validação</strong> nos dados de entrada — os cálculos abaixo estão suspensos.<ul>${items}</ul></div>`;
+    $('#kpi-chips').innerHTML = '';
+    $('#entries-wrap').innerHTML = '';
+    $('#schedule-table tbody').innerHTML = '';
+    $('#chart').innerHTML = '';
+    $('#memory').innerHTML = '';
+    return;
+  }
+  alertEl.innerHTML = '';
+
+  const schedule = buildSchedule();
+  renderKpis(schedule);
+  renderEntries(schedule);
+  renderScheduleTable(schedule);
+  renderChart(schedule);
+  renderMemory(schedule);
+}
+
+function renderKpis(schedule) {
+  const { base, recharge } = schedule;
+
+  if (schedule.isConsolidated) {
+    // Consolidado: usa data-base do primeiro plano ou hoje; acumulado/restante agregados
+    const refReportingDate = (schedule.perPlan.find(p => p.schedule) || {}).schedule
+      ? parseDate((schedule.perPlan.find(p => p.schedule).schedule.periods[0] || {}).end)
+      : new Date();
+    // Acumulado até hoje (data corrente como referência)
+    const today = new Date();
+    let acc = 0;
+    schedule.periods.forEach(p => { if (p.end <= today) acc = p.cumulative; });
+    const remaining = base.totalFV - acc;
+    const validPlans = schedule.perPlan.filter(p => p.schedule).length;
+    const invalidPlans = schedule.perPlan.length - validPlans;
+    const currencyLabel = schedule.mixedCurrencies ? '⚠ misto' : (schedule.currencies[0] || '—');
+
+    $('#kpi-chips').innerHTML = `
+      <div class="chip"><div class="chip-label">FV total (somado)</div><div class="chip-value">${fmtShort(base.totalFV)}</div></div>
+      <div class="chip"><div class="chip-label">Moeda funcional</div><div class="chip-value small">${currencyLabel}</div></div>
+      <div class="chip"><div class="chip-label">Planos válidos</div><div class="chip-value">${validPlans}${invalidPlans ? ' (' + invalidPlans + ' c/ erro)' : ''}</div></div>
+      <div class="chip"><div class="chip-label">Acumulado até hoje</div><div class="chip-value">${fmtShort(acc)}</div></div>
+      <div class="chip"><div class="chip-label">A apropriar</div><div class="chip-value">${fmtShort(remaining)}</div></div>
+      <div class="chip"><div class="chip-label">Períodos no cronograma</div><div class="chip-value">${schedule.periods.length}</div></div>
+    `;
+    return;
+  }
+
+  const reportingDate = parseDate(plan.reportingDate);
+  let acc = 0;
+  schedule.periods.forEach(p => { if (p.end <= reportingDate) acc = p.cumulative; });
+  const remaining = base.totalFV - acc;
+
+  $('#kpi-chips').innerHTML = `
+    <div class="chip"><div class="chip-label">FV total</div><div class="chip-value">${fmtShort(base.totalFV)}</div></div>
+    <div class="chip"><div class="chip-label">Instrumentos ajustados</div><div class="chip-value">${fmtNum(base.adjustedInstruments, 0)}</div></div>
+    <div class="chip"><div class="chip-label">Acumulado até ${fmtDate(reportingDate)}</div><div class="chip-value">${fmtShort(acc)}</div></div>
+    <div class="chip"><div class="chip-label">A apropriar</div><div class="chip-value">${fmtShort(remaining)}</div></div>
+    <div class="chip"><div class="chip-label">% Equity-settled</div><div class="chip-value small">${fmtPct(recharge.equityPortion * 100, 1)}</div></div>
+    <div class="chip"><div class="chip-label">% Cash-settled</div><div class="chip-value small">${fmtPct(recharge.cashPortion * 100, 1)}</div></div>
+  `;
+}
+
+function getDisplayValue(schedule, kind = 'equity') {
+  // kind: 'equity' | 'cash' | 'total'
+  const view = plan.view || 'annual';
+  const reportingDate = parseDate(plan.reportingDate);
+  if (view === 'total') {
+    if (kind === 'equity') return schedule.base.totalFV * schedule.recharge.equityPortion;
+    if (kind === 'cash') return schedule.base.totalFV * schedule.recharge.cashPortion;
+    return schedule.base.totalFV;
+  }
+  // achar período corrente (que contém reportingDate) ou último até reportingDate
+  let target = null;
+  for (const p of schedule.periods) {
+    if (p.start <= reportingDate && reportingDate <= p.end) { target = p; break; }
+    if (p.end <= reportingDate) target = p;
+  }
+  if (!target) target = schedule.periods[0];
+  if (view === 'cumulative') {
+    if (kind === 'equity') return target.cumulative * schedule.recharge.equityPortion;
+    if (kind === 'cash') return target.cumulative * schedule.recharge.cashPortion;
+    return target.cumulative;
+  }
+  // annual = do período
+  if (kind === 'equity') return target.equityPortion;
+  if (kind === 'cash') return target.cashPortion;
+  return target.totalExpense;
+}
+
+function renderEntries(schedule) {
+  const wrap = $('#entries-wrap');
+  wrap.innerHTML = '';
+
+  if (schedule.isConsolidated) {
+    // Em consolidado, lançamentos detalhados não fazem sentido (entidades distintas).
+    // Mostra um sumário por plano + total agregado.
+    const rows = schedule.perPlan.map(p => {
+      if (!p.schedule) {
+        return `<tr><td>${escapeHtml(p.name)}</td><td colspan="4" class="muted">⚠ sem dados válidos</td></tr>`;
+      }
+      const s = p.schedule;
+      const today = new Date();
+      let acc = 0;
+      s.periods.forEach(per => { if (per.end <= today) acc = per.cumulative; });
+      const remaining = Math.max(0, s.base.totalFV - acc);
+      const employer = p.plan && p.plan.identification && p.plan.identification.employer ? p.plan.identification.employer.name : '';
+      return `<tr>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td>${escapeHtml(p.functionalCurrency || '')}</td>
+        <td style="text-align:right;">${fmtBRL(s.base.totalFV)}</td>
+        <td style="text-align:right;">${fmtBRL(acc)}</td>
+        <td style="text-align:right;">${fmtBRL(remaining)}</td>
+      </tr>`;
+    }).join('');
+
+    const totFV = schedule.base.totalFV;
+    let totAcc = 0;
+    const today = new Date();
+    schedule.periods.forEach(p => { if (p.end <= today) totAcc = p.cumulative; });
+    const totRem = Math.max(0, totFV - totAcc);
+    const currencyLabel = schedule.mixedCurrencies ? '<span style="color: var(--warning);">misto</span>' : (schedule.currencies[0] || '—');
+
+    wrap.innerHTML = `
+      <div class="entry-card" style="grid-column: 1 / -1;">
+        <span class="card-tag">Visão consolidada</span>
+        <div class="card-title">Sumário por plano</div>
+        <div style="margin-top: 12px; overflow-x: auto;">
+          <table class="schedule-like" style="width:100%; font-size: 12.5px; border-collapse: collapse;">
+            <thead>
+              <tr style="background: var(--surface-2, var(--surface));">
+                <th style="text-align:left; padding: 8px;">Plano</th>
+                <th style="text-align:left; padding: 8px;">Moeda</th>
+                <th style="text-align:right; padding: 8px;">FV total</th>
+                <th style="text-align:right; padding: 8px;">Acumulado (hoje)</th>
+                <th style="text-align:right; padding: 8px;">A apropriar</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr style="border-top: 2px solid var(--border); font-weight: 600;">
+                <td style="padding: 8px;">TOTAL</td>
+                <td style="padding: 8px;">${currencyLabel}</td>
+                <td style="padding: 8px; text-align:right;">${fmtBRL(totFV)}</td>
+                <td style="padding: 8px; text-align:right;">${fmtBRL(totAcc)}</td>
+                <td style="padding: 8px; text-align:right;">${fmtBRL(totRem)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="net-effect" style="margin-top: 14px;">
+          Lançamentos contábeis detalhados não são exibidos em modo consolidado porque dependem da entidade outorgante/empregadora de cada plano específico. Selecione um plano individual no seletor acima para ver os débitos/créditos por entidade.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ----- Modo individual: lançamentos detalhados -----
+  const eqVal = getDisplayValue(schedule, 'equity');
+  const cashVal = getDisplayValue(schedule, 'cash');
+  const totalVal = eqVal + cashVal;
+  const employer = escapeHtml(plan.identification.employer.name);
+  const grantor = escapeHtml(plan.identification.grantor.name);
+  const empTax = escapeHtml(plan.identification.employer.taxId);
+  const grantorTax = escapeHtml(plan.identification.grantor.taxId);
+
+  // === EMPREGADORA ===
+  let empBody = '';
+  if (eqVal > 0) {
+    empBody += jeBlock('Parcela equity-settled',
+      jeRow('D', 'Despesa com SBP', 'Resultado', fmtBRL(eqVal)) +
+      jeRow('C', 'Reserva de capital — contribuição da controladora', 'Patrimônio líquido', fmtBRL(eqVal))
+    );
+  }
+  if (cashVal > 0) {
+    empBody += jeBlock('Parcela cash-settled (recharge)',
+      jeRow('D', 'Despesa com SBP', 'Resultado', fmtBRL(cashVal)) +
+      jeRow('C', 'Conta a pagar — intercompany (reembolso SBP)', 'Passivo intragrupo', fmtBRL(cashVal))
+    );
+  }
+
+  wrap.innerHTML += `
+    <div class="entry-card empregadora">
+      <span class="card-tag">Onde o serviço é prestado</span>
+      <div class="card-title">Empregadora</div>
+      <div class="card-entity">${employer || '—'}</div>
+      <div class="card-tax-id">${empTax || '&nbsp;'}</div>
+      ${empBody || '<div class="muted" style="font-size: 13px;">Sem lançamento neste período.</div>'}
+      <div class="net-effect">
+        ${cashVal > 0
+          ? 'Parte equity-settled: PL inalterado (troca lucro por reserva). Parte cash-settled: cria passivo intragrupo (a controladora reembolsa).'
+          : 'PL total não muda — a despesa reduz o lucro do exercício e a reserva aumenta na mesma proporção.'}
+      </div>
+    </div>`;
+
+  // === OUTORGANTE ===
+  let outBody = '';
+  if (eqVal > 0) {
+    outBody += jeBlock('Aporte presumido via SBP (equity)',
+      jeRow('D', 'Investimento em controlada', 'Ativo', fmtBRL(eqVal)) +
+      jeRow('C', 'Reserva de capital — opções/ações outorgadas', 'Patrimônio líquido', fmtBRL(eqVal))
+    );
+    outBody += jeBlock('Equivalência patrimonial (sobre o prejuízo da empregadora)',
+      jeRow('D', 'Resultado de equivalência patrimonial', 'Resultado', fmtBRL(totalVal * (Number(plan.grant.participation)||100)/100)) +
+      jeRow('C', 'Investimento em controlada', 'Ativo', fmtBRL(totalVal * (Number(plan.grant.participation)||100)/100))
+    );
+  }
+  if (cashVal > 0) {
+    outBody += jeBlock('Recebível pelo recharge (cash)',
+      jeRow('D', 'Conta a receber — empregadora (recharge SBP)', 'Ativo intragrupo', fmtBRL(cashVal)) +
+      jeRow('C', 'Reserva de capital — opções/ações outorgadas', 'Patrimônio líquido', fmtBRL(cashVal))
+    );
+  }
+
+  wrap.innerHTML += `
+    <div class="entry-card outorgante">
+      <span class="card-tag">Quem outorga as ações</span>
+      <div class="card-title">Outorgante</div>
+      <div class="card-entity">${grantor || '—'}</div>
+      <div class="card-tax-id">${grantorTax || '&nbsp;'}</div>
+      ${outBody || '<div class="muted" style="font-size: 13px;">Sem lançamento neste período.</div>'}
+      <div class="net-effect">
+        ${cashVal > 0
+          ? 'Em recharge, a outorgante reconhece recebível e reserva de capital. Equivalência apenas sobre a parcela equity.'
+          : 'Sem despesa direta de SBP no individual da outorgante — o custo entra via MEP. Investimento líquido em zero (aporte e MEP se cancelam).'}
+      </div>
+    </div>`;
+}
+
+function jeRow(dc, account, group, value) {
+  return `
+    <div class="je-row">
+      <span class="je-dc ${dc.toLowerCase()}">${dc}</span>
+      <span class="je-account">
+        <span class="je-account-name">${account}</span>
+        <span class="je-account-group">${group}</span>
+      </span>
+      <span class="je-value">${value}</span>
+    </div>`;
+}
+function jeBlock(label, rows) {
+  return `<div class="je"><div class="je-label">${label}</div>${rows}</div>`;
+}
+
+function renderScheduleTable(schedule) {
+  const tbody = $('#schedule-table tbody');
+  tbody.innerHTML = '';
+  schedule.periods.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.label}</td>
+      <td>${fmtBRL(p.totalExpense)}</td>
+      <td>${fmtBRL(p.equityPortion)}</td>
+      <td>${fmtBRL(p.cashPortion)}</td>
+      <td>${fmtBRL(p.cumulative)}</td>
+      <td>${fmtBRL(p.remaining)}</td>
+      <td>${fmtBRL(p.recharge)}</td>
+      <td>${fmtBRL(p.rechargeCumulative)}</td>`;
+    tbody.appendChild(tr);
+  });
+  // Totals
+  const totals = schedule.periods.reduce((acc, p) => ({
+    exp: acc.exp + p.totalExpense,
+    eq: acc.eq + p.equityPortion,
+    cash: acc.cash + p.cashPortion,
+    rec: acc.rec + p.recharge
+  }), { exp: 0, eq: 0, cash: 0, rec: 0 });
+  $('#schedule-totals').innerHTML = `
+    <td>Total</td>
+    <td>${fmtBRL(totals.exp)}</td>
+    <td>${fmtBRL(totals.eq)}</td>
+    <td>${fmtBRL(totals.cash)}</td>
+    <td>—</td><td>—</td>
+    <td>${fmtBRL(totals.rec)}</td>
+    <td>—</td>`;
+}
+
+function renderChart(schedule) {
+  const chart = $('#chart');
+  chart.innerHTML = '';
+  const max = Math.max(...schedule.periods.map(p => p.totalExpense), 1);
+  schedule.periods.forEach(p => {
+    const heightPct = (p.totalExpense / max) * 90;
+    if (p.cashPortion > 0 && p.equityPortion > 0) {
+      // empilhar — wrapper
+      const stack = document.createElement('div');
+      stack.style.cssText = 'flex: 1; display: flex; flex-direction: column; justify-content: end; position: relative;';
+      const cashH = (p.cashPortion / max) * 90;
+      const eqH = (p.equityPortion / max) * 90;
+      stack.innerHTML = `
+        <span class="chart-bar-value" style="bottom: ${heightPct + 2}%;">${fmtShort(p.totalExpense)}</span>
+        <div class="chart-bar cash" style="height: ${cashH}%;"></div>
+        <div class="chart-bar" style="height: ${eqH}%; border-radius: 4px 4px 0 0;"></div>
+        <span class="chart-bar-label">${p.label}</span>
+      `;
+      chart.appendChild(stack);
+    } else {
+      const cls = p.cashPortion > 0 ? 'cash' : '';
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar ' + cls;
+      bar.style.height = `${heightPct}%`;
+      bar.innerHTML = `
+        <span class="chart-bar-value">${fmtShort(p.totalExpense)}</span>
+        <span class="chart-bar-label">${p.label}</span>`;
+      chart.appendChild(bar);
+    }
+  });
+}
+
+function renderMemory(schedule) {
+  if (schedule.isConsolidated) {
+    // Em consolidado: lista os planos com FV, qtd tranches, datas chave
+    const planRows = schedule.perPlan.map(p => {
+      if (!p.schedule) {
+        return `<div style="padding: 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;">
+          <strong>${escapeHtml(p.name)}</strong> — <span class="muted">⚠ sem dados válidos</span>
+        </div>`;
+      }
+      const s = p.schedule;
+      const grantDate = (p.plan && p.plan.grant) ? p.plan.grant.grantDate : '';
+      const tranchesInfo = s.tranches.map((t, i) =>
+        `T${i+1}: ${fmtPct(t.pct, 0)} @ ${t.years}a${t.settlementDays ? '+'+t.settlementDays+'d' : ''} (vest ${fmtDate(t.vestEnd)})`
+      ).join(' · ');
+      return `
+        <div style="padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;">
+            <strong>${escapeHtml(p.name)}</strong>
+            <span style="font-size: 11.5px; color: var(--text-tertiary);">${p.functionalCurrency || ''} · outorga ${grantDate || '—'}</span>
+          </div>
+          <p style="margin-top: 6px;">FV total: <code>${fmtBRL(s.base.totalFV)}</code> · Instrumentos ajustados: <code>${fmtNum(s.base.adjustedInstruments, 0)}</code></p>
+          <p style="font-size: 12px; color: var(--text-secondary);">${tranchesInfo}</p>
+        </div>`;
+    }).join('');
+
+    const blocks = [
+      {
+        title: '1. Planos incluídos na consolidação',
+        body: planRows + (schedule.mixedCurrencies
+          ? `<div class="alert warning" style="margin-top: 8px;"><strong>Moedas funcionais diferentes:</strong> ${schedule.currencies.join(', ')}. Os totais somam números sem conversão entre moedas.</div>`
+          : '')
+      },
+      {
+        title: '2. Agregação por período',
+        body: `
+          <p>Períodos foram agregados pelo rótulo (mesma granularidade). Quando os planos têm granularidades distintas, a primeira (em ordem) é usada como referência.</p>
+          <p>FV total agregado: <strong>${fmtBRL(schedule.base.totalFV)}</strong></p>
+          <p>Total de períodos no cronograma consolidado: <code>${schedule.periods.length}</code></p>
+        `
+      },
+      {
+        title: '3. Limitações da visão consolidada',
+        body: `
+          <ul style="margin: 8px 0 0 18px;">
+            <li>Lançamentos contábeis detalhados não são exibidos (cada plano tem entidades distintas).</li>
+            <li>Soma numérica sem conversão entre moedas — interprete com cuidado se houver mix.</li>
+            <li>KPIs de instrumentos ajustados/forfeiture/recharge são específicos por plano; veja na visão individual.</li>
+            <li>Para análises por entidade (eliminações intragrupo, MEP, recharge), selecione um plano específico no seletor.</li>
+          </ul>
+        `
+      }
+    ];
+    const html = blocks.map(b => `<details class="memory-block" open><summary>${b.title}</summary><div class="memory-body">${b.body}</div></details>`).join('');
+    $('#memory').innerHTML = html;
+    return;
+  }
+
+  // ----- Modo individual -----
+  const { base, recharge, tranches } = schedule;
+  const fxLabel = base.sameCurrency ? 'mesma moeda — FX = 1' : `${plan.grant.grantCurrency} → ${plan.identification.employer.functionalCurrency} @ ${fmtNum(base.fx, 4)}`;
+  const blocks = [
+    {
+      title: '1. Ajuste do número de instrumentos esperados',
+      body: `
+        <p>Qtd. outorgada: <code>${fmtNum(plan.grant.instrumentCount)}</code></p>
+        <p>× Probabilidade de atingimento (não-mercado): <code>${fmtPct(base.probAdj * 100, 1)}</code></p>
+        <p>× (1 − forfeiture rate esperado): <code>${fmtPct(base.fAdj * 100, 1)}</code></p>
+        <p>= <strong>${fmtNum(base.adjustedInstruments, 0)}</strong> instrumentos ajustados</p>
+      `
+    },
+    {
+      title: '2. Conversão do FV unitário para moeda funcional',
+      body: `
+        <p>FV unitário (${plan.grant.grantCurrency}): <code>${fmtNum(plan.grant.fvPerUnit, 2)}</code></p>
+        <p>× FX (${fxLabel})</p>
+        <p>= <strong>${fmtNum(base.fvLocal, 4)}</strong> ${plan.identification.employer.functionalCurrency}/instrumento</p>
+      `
+    },
+    {
+      title: '3. Fair value total da outorga',
+      body: `
+        <p>Instrumentos ajustados × FV unitário em moeda funcional</p>
+        <p><code>${fmtNum(base.adjustedInstruments, 0)} × ${fmtNum(base.fvLocal, 4)}</code></p>
+        <p>= <strong>${fmtBRL(base.totalFV)}</strong></p>
+      `
+    },
+    {
+      title: '4. Tranches (graded vesting — método acelerado)',
+      body: tranches.map(t => `
+        <p><strong>Tranche ${t.index + 1}</strong> (${fmtPct(t.pct, 2)} | ${t.years} anos${t.settlementDays ? ` + ${t.settlementDays}d lock-up` : ''})</p>
+        <p>FV da tranche: <code>${fmtBRL(t.totalFV)}</code></p>
+        <p>Dias de apropriação (do grant date até ${fmtDate(t.vestEnd)}): <code>${t.vestingDays}</code></p>
+        <p>Acréscimo diário: <code>${fmtBRL(t.dailyAccrual, 4)}/dia</code></p>
+      `).join('<hr style="border: none; border-top: 1px dashed var(--border); margin: 8px 0;">')
+    },
+    {
+      title: '5. Apuração por período',
+      body: `
+        <p>Para cada período, soma-se a parcela de cada tranche cujo vesting cobre dias do período:</p>
+        <p><code>despesa_período = Σ tranches (dias_de_overlap × acréscimo_diário)</code></p>
+        <p>Cumulative = Σ despesas até o período; Restante = FV total − Cumulative.</p>
+      `
+    },
+    {
+      title: '6. Split equity/cash conforme recharge',
+      body: !plan.recharge.enabled
+        ? `<p>Sem recharge — 100% equity-settled.</p>`
+        : `
+        <p>Total a reembolsar: <code>${fmtBRL(recharge.totalRecharge)}</code></p>
+        <p>Cash portion = total_recharge / total_FV = <code>${fmtPct(recharge.cashPortion * 100, 2)}</code></p>
+        <p>Equity portion = <code>${fmtPct(recharge.equityPortion * 100, 2)}</code></p>
+        <p>Cada período é dividido nessa proporção entre equity e cash-settled.</p>
+        `
+    },
+    {
+      title: '7. Lançamentos',
+      body: `
+        <p><strong>Empregadora (equity):</strong> D Despesa SBP | C Reserva de capital — contribuição</p>
+        <p><strong>Empregadora (cash):</strong> D Despesa SBP | C Conta a pagar intercompany</p>
+        <p><strong>Outorgante (equity):</strong> D Investimento na empregadora | C Reserva de capital — opções; depois D MEP | C Investimento</p>
+        <p><strong>Outorgante (cash):</strong> D Conta a receber intercompany | C Reserva de capital</p>
+      `
+    }
+  ];
+
+  $('#memory').innerHTML = blocks.map((b, i) => `
+    <div class="acc-item">
+      <button class="acc-trigger">${b.title}<span class="acc-arrow">›</span></button>
+      <div class="acc-content">${b.body}</div>
+    </div>
+  `).join('');
+
+  // bind accordion
+  $$('#memory .acc-trigger').forEach(btn => {
+    btn.addEventListener('click', () => btn.parentElement.classList.toggle('open'));
+  });
+}
+
+/* ============================================================
+   EXPORT · CSV
+   ============================================================ */
+function downloadCsv(filename, rows) {
+  // BOM para Excel pt-BR reconhecer acentos
+  const csv = '\uFEFF' + rows.map(r => r.map(c => {
+    const s = String(c == null ? '' : c);
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportScheduleCsv() {
+  if (Object.keys(errors).length > 0) { alert('Corrija os erros antes de exportar.'); return; }
+  const schedule = buildSchedule();
+  const rows = [
+    ['Plano', plan.identification.planName],
+    ['Outorgante', plan.identification.grantor.name],
+    ['Empregadora', plan.identification.employer.name],
+    ['Data outorga', fmtDate(plan.grant.grantDate)],
+    ['Qtd instrumentos', plan.grant.instrumentCount],
+    ['FV unitário', plan.grant.fvPerUnit],
+    ['FV total', schedule.base.totalFV.toFixed(2)],
+    [],
+    ['Período', 'Despesa do período', 'Equity-settled', 'Cash-settled', 'Acumulado', 'A apropriar', 'Repasse', 'Repasse acumulado']
+  ];
+  schedule.periods.forEach(p => {
+    rows.push([
+      p.label,
+      p.totalExpense.toFixed(2),
+      p.equityPortion.toFixed(2),
+      p.cashPortion.toFixed(2),
+      p.cumulative.toFixed(2),
+      p.remaining.toFixed(2),
+      p.recharge.toFixed(2),
+      p.rechargeCumulative.toFixed(2)
+    ]);
+  });
+  downloadCsv(`SBP_cronograma_${(plan.identification.planName||'plano').replace(/\s+/g,'_')}.csv`, rows);
+}
+
+function exportEntriesCsv() {
+  if (Object.keys(errors).length > 0) { alert('Corrija os erros antes de exportar.'); return; }
+  const schedule = buildSchedule();
+  const rows = [['Período', 'Entidade', 'Conta', 'D/C', 'Grupo', 'Valor', 'Histórico']];
+  schedule.periods.forEach(p => {
+    const eq = p.equityPortion;
+    const cash = p.cashPortion;
+    if (eq > 0) {
+      rows.push([p.label, plan.identification.employer.name, 'Despesa com SBP', 'D', 'Resultado', eq.toFixed(2), 'Equity-settled']);
+      rows.push([p.label, plan.identification.employer.name, 'Reserva de capital - contribuição', 'C', 'PL', eq.toFixed(2), 'Equity-settled']);
+      rows.push([p.label, plan.identification.grantor.name, 'Investimento em controlada', 'D', 'Ativo', eq.toFixed(2), 'Aporte presumido (equity)']);
+      rows.push([p.label, plan.identification.grantor.name, 'Reserva de capital - opções', 'C', 'PL', eq.toFixed(2), 'Aporte presumido (equity)']);
+      const mep = (eq + cash) * (Number(plan.grant.participation)||100) / 100;
+      rows.push([p.label, plan.identification.grantor.name, 'Resultado de equivalência patrimonial', 'D', 'Resultado', mep.toFixed(2), 'MEP']);
+      rows.push([p.label, plan.identification.grantor.name, 'Investimento em controlada', 'C', 'Ativo', mep.toFixed(2), 'MEP']);
+    }
+    if (cash > 0) {
+      rows.push([p.label, plan.identification.employer.name, 'Despesa com SBP', 'D', 'Resultado', cash.toFixed(2), 'Cash-settled']);
+      rows.push([p.label, plan.identification.employer.name, 'Conta a pagar intercompany (recharge)', 'C', 'Passivo', cash.toFixed(2), 'Cash-settled']);
+      rows.push([p.label, plan.identification.grantor.name, 'Conta a receber - empregadora (recharge)', 'D', 'Ativo', cash.toFixed(2), 'Cash recharge']);
+      rows.push([p.label, plan.identification.grantor.name, 'Reserva de capital - opções', 'C', 'PL', cash.toFixed(2), 'Cash recharge']);
+    }
+  });
+  downloadCsv(`SBP_lancamentos_${(plan.identification.planName||'plano').replace(/\s+/g,'_')}.csv`, rows);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function showModal({ title, body, onConfirm }) {
+  $('#modal-title').textContent = title;
+  $('#modal-body').textContent = body;
+  $('#modal-overlay').classList.remove('hide');
+  const onCancel = () => $('#modal-overlay').classList.add('hide');
+  $('#modal-cancel').onclick = onCancel;
+  $('#modal-confirm').onclick = () => { onCancel(); if (onConfirm) onConfirm(); };
+}
+
+/* ============================================================
+   BINDINGS
+   ============================================================ */
+function bindTabs() {
+  $$('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      $$('.tabs button').forEach(b => b.classList.toggle('active', b === btn));
+      $$('section[data-tab-content]').forEach(s => {
+        s.classList.toggle('active', s.dataset.tabContent === tab);
+      });
+    });
+  });
+}
+
+function bindInputs() {
+  // data-bind inputs
+  $$('[data-bind]').forEach(el => {
+    const path = el.dataset.bind;
+    const event = (el.tagName === 'SELECT' || el.type === 'date' || el.type === 'checkbox') ? 'change' : 'input';
+    el.addEventListener(event, () => {
+      let v;
+      if (el.type === 'checkbox') v = el.checked;
+      else if (el.type === 'number') v = el.value === '' ? '' : Number(el.value);
+      else v = el.value;
+      setByPath(plan, path, v);
+      render();
+    });
+  });
+
+  // segmented
+  $$('.segmented[data-control] button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const seg = btn.closest('.segmented');
+      const path = seg.dataset.control;
+      const value = btn.dataset.value;
+      setByPath(plan, path, value);
+      // also: if path is "view" no need to persist (display only) — but it's harmless
+      render();
+    });
+  });
+
+  // add tranche
+  $('#add-tranche').addEventListener('click', () => {
+    if (plan.vesting.type === 'cliff') return;
+    const lastYear = plan.vesting.tranches.length
+      ? plan.vesting.tranches[plan.vesting.tranches.length - 1].vestingPeriodYears + 1
+      : 1;
+    plan.vesting.tranches.push({ pct: 0, vestingPeriodYears: lastYear });
+    render();
+  });
+}
+
+function bindActions() {
+  $('#action-save').addEventListener('click', saveExplicit);
+  $('#action-load').addEventListener('click', () => {
+    if (loadStored()) { render(); setStatus('ok', 'Rascunho carregado'); }
+    else setStatus('error', 'Nenhum rascunho salvo');
+  });
+  $('#action-clear').addEventListener('click', () => {
+    showModal({
+      title: 'Limpar plano ativo?',
+      body: 'Isso vai apagar TODOS os campos do plano ativo (campos ficam em branco/zero). Os outros planos não são afetados. O rascunho no navegador será atualizado.',
+      onConfirm: () => {
+        if (isConsolidatedView()) {
+          // Em consolidado, limpar tudo cria um plano vazio
+          state.plans = [{ id: genPlanId(), plan: emptyPlan() }];
+          setActivePlan(state.plans[0].id);
+        } else {
+          const entry = currentPlanEntry();
+          if (entry) {
+            const newEmpty = emptyPlan();
+            // preserva o nome do plano para o usuário não perder identificação
+            newEmpty.identification.planName = entry.plan.identification.planName || '';
+            entry.plan = newEmpty;
+            plan = entry.plan;
+          }
+        }
+        persistDebounced();
+        render();
+        setStatus('ok', 'Plano limpo');
+      }
+    });
+  });
+  $('#export-csv-schedule').addEventListener('click', exportScheduleCsv);
+  $('#export-csv-entries').addEventListener('click', exportEntriesCsv);
+  $('#export-print').addEventListener('click', () => {
+    $$('section[data-tab-content]').forEach(s => s.classList.add('active'));
+    window.print();
+    setTimeout(() => {
+      $$('section[data-tab-content]').forEach(s => {
+        s.classList.toggle('active', s.dataset.tabContent === 'resultado' || s.dataset.tabContent === $('.tabs button.active').dataset.tab);
+      });
+    }, 50);
+  });
+}
+
+/* ============================================================
+   BARRA DE PLANOS · seletor + ações
+   ============================================================ */
+function renderPlansBar() {
+  const sel = $('#plan-selector');
+  sel.innerHTML = '';
+  // Opções: cada plano + opção consolidada
+  state.plans.forEach((entry, i) => {
+    const opt = document.createElement('option');
+    opt.value = entry.id;
+    const name = entry.plan.identification.planName || ('Plano ' + (i + 1));
+    opt.textContent = name;
+    if (entry.id === state.activeId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (state.plans.length > 1) {
+    const sep = document.createElement('option');
+    sep.disabled = true;
+    sep.textContent = '──────────';
+    sel.appendChild(sep);
+    const cons = document.createElement('option');
+    cons.value = CONSOLIDATED_ID;
+    cons.textContent = '📊 Visão consolidada (' + state.plans.length + ' planos)';
+    if (state.activeId === CONSOLIDATED_ID) cons.selected = true;
+    sel.appendChild(cons);
+  }
+  // Banner
+  const banner = $('#consolidated-banner');
+  if (isConsolidatedView()) {
+    banner.classList.remove('hide');
+    $('#consolidated-count').textContent = state.plans.length;
+  } else {
+    banner.classList.add('hide');
+  }
+  // Habilita/desabilita botões dependentes
+  const consolidated = isConsolidatedView();
+  $('#plan-duplicate').disabled = consolidated;
+  $('#plan-rename').disabled = consolidated;
+  $('#plan-delete').disabled = consolidated;
+}
+
+function bindPlansBar() {
+  $('#plan-selector').addEventListener('change', (e) => {
+    setActivePlan(e.target.value);
+    persistDebounced();
+    render();
+  });
+  $('#plan-new').addEventListener('click', () => {
+    addNewPlan(emptyPlan(), true);
+    persistDebounced();
+    render();
+    setStatus('ok', 'Novo plano criado');
+  });
+  $('#plan-duplicate').addEventListener('click', () => {
+    if (duplicateActivePlan()) {
+      persistDebounced();
+      render();
+      setStatus('ok', 'Plano duplicado');
+    }
+  });
+  $('#plan-rename').addEventListener('click', () => {
+    if (isConsolidatedView()) return;
+    const entry = currentPlanEntry();
+    if (!entry) return;
+    const newName = window.prompt('Novo nome do plano:', entry.plan.identification.planName || '');
+    if (newName !== null) {
+      entry.plan.identification.planName = newName.trim();
+      persistDebounced();
+      render();
+      setStatus('ok', 'Plano renomeado');
+    }
+  });
+  $('#plan-load-example').addEventListener('click', () => {
+    showModal({
+      title: 'Carregar exemplo SOP 2021?',
+      body: 'Vai criar um novo plano com os dados do laudo TATICCA SOP 2021 (Asaas LTD, US$ 0,8405, 4 tranches, 60d lock-up, exit rate 4%, granularidade mensal).',
+      onConfirm: () => {
+        addNewPlan(defaultPlan(), true);
+        persistDebounced();
+        render();
+        setStatus('ok', 'Exemplo SOP 2021 carregado');
+      }
+    });
+  });
+  $('#plan-delete').addEventListener('click', () => {
+    if (isConsolidatedView()) return;
+    const entry = currentPlanEntry();
+    if (!entry) return;
+    const name = entry.plan.identification.planName || 'plano sem nome';
+    showModal({
+      title: 'Excluir plano?',
+      body: 'Excluir "' + name + '"? Esta ação não pode ser desfeita. Se este for o último plano, um plano vazio será criado em seguida.',
+      onConfirm: () => {
+        deleteActivePlan();
+        persistDebounced();
+        render();
+        setStatus('ok', 'Plano excluído');
+      }
+    });
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  const loaded = loadStored();
+  if (!loaded) {
+    // Primeira abertura: cria 1 plano com defaults do laudo (exemplo SOP 2021)
+    addNewPlan(defaultPlan(), true);
+  }
+  bindTabs();
+  bindInputs();
+  bindActions();
+  bindPlansBar();
+  render();
+  setStatus('ok', 'Pronto');
+}
+
+init();
+</script>
+</body>
+</html>
